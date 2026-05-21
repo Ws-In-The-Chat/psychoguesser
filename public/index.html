@@ -160,6 +160,13 @@ input[type=text]::placeholder { color: var(--muted); }
 .time-opt:hover { border-color: var(--accent); color: var(--text); }
 .time-opt.selected { border-color: var(--accent); background: rgba(139,92,246,0.12); color: #c4b5fd; }
 
+.topic-picker-wrap { margin-top: 4px; margin-bottom: 8px; }
+.topic-opts { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.topic-opt { padding: 8px 14px; border-radius: 8px; border: 2px solid var(--border2); background: rgba(255,255,255,0.03); color: var(--muted); font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.16s; font-family: inherit; }
+.topic-opt:hover { border-color: var(--accent2); color: var(--text); }
+.topic-opt.selected { border-color: var(--accent2); background: rgba(6,182,212,0.12); color: #67e8f9; }
+.topic-opt:disabled { opacity: 0.45; cursor: not-allowed; }
+
 /* ═══════════════════════════════════════════════
    LOBBY SCREEN
 ═══════════════════════════════════════════════ */
@@ -703,6 +710,18 @@ input[type=text]::placeholder { color: var(--muted); }
           </div>
         </div>
 
+        <div class="topic-picker-wrap" id="topic-picker-wrap">
+          <div class="label">AP Psych Topic</div>
+          <div class="topic-opts" id="topic-opts">
+            <button class="topic-opt selected" data-unit="all" onclick="selectUnit('all')">🧠 All Topics</button>
+            <button class="topic-opt" data-unit="u1" onclick="selectUnit('u1')">🔬 Unit 1 · Biological</button>
+            <button class="topic-opt" data-unit="u2" onclick="selectUnit('u2')">💭 Unit 2 · Cognition</button>
+            <button class="topic-opt" data-unit="u3" onclick="selectUnit('u3')">🧩 Unit 3 · Development &amp; Learning</button>
+            <button class="topic-opt" data-unit="u4" onclick="selectUnit('u4')">👥 Unit 4 · Social &amp; Personality</button>
+            <button class="topic-opt" data-unit="u5" onclick="selectUnit('u5')">⚕️ Unit 5 · Mental &amp; Physical Health</button>
+          </div>
+        </div>
+
         <div class="time-picker-wrap" id="time-picker-wrap" style="display:none">
           <div class="label">Time Per Round</div>
           <div class="time-opts" id="time-opts">
@@ -1228,6 +1247,7 @@ function enterLobby(room) {
   document.getElementById('lobby-link').value = `${location.origin}?join=${room.code}`;
   renderPlayers(room.players);
   updateModeUI(room.mode);
+  updateUnitUI(room.unit);
   updateStartBtn(room);
   fetchCommunityCount();
   showScreen('lobby-screen');
@@ -1263,6 +1283,18 @@ function updateModeUI(mode) {
   const timePicker = document.getElementById('time-picker-wrap');
   timePicker.style.display = (mode === 'practice' || mode === 'classic' || mode === 'sprint') ? '' : 'none';
   if (!isHost) timePicker.style.pointerEvents = 'none';
+  // Topic picker is irrelevant for community mode (it uses its own pool)
+  const topicPicker = document.getElementById('topic-picker-wrap');
+  if (topicPicker) {
+    topicPicker.style.display = (mode === 'community') ? 'none' : '';
+    topicPicker.style.pointerEvents = isHost ? '' : 'none';
+    topicPicker.style.opacity = isHost ? '1' : '0.7';
+  }
+}
+
+function updateUnitUI(unit) {
+  document.querySelectorAll('.topic-opt').forEach(b =>
+    b.classList.toggle('selected', b.dataset.unit === (unit || 'all')));
 }
 
 function selectTime(t) {
@@ -1279,6 +1311,13 @@ function selectMode(mode) {
     return;
   }
   socket.emit('change-mode', { code: roomCode, mode });
+}
+
+function selectUnit(unit) {
+  if (!isHost) return;
+  document.querySelectorAll('.topic-opt').forEach(b =>
+    b.classList.toggle('selected', b.dataset.unit === unit));
+  socket.emit('change-unit', { code: roomCode, unit });
 }
 
 function updateStartBtn(room) {
@@ -2014,6 +2053,7 @@ socket.on('room-updated', ({ room }) => {
   isHost = room.host === myId;
   renderPlayers(room.players);
   updateModeUI(room.mode);
+  updateUnitUI(room.unit);
   updateStartBtn(room);
   // Sync time picker selection
   if (room.customTimeLimit) {
