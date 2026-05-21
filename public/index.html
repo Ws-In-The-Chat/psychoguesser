@@ -1312,8 +1312,8 @@ function initGameMap() {
     center: [20, 10], zoom: 2, minZoom: 1, maxZoom: 12,
     zoomControl: true, attributionControl: true,
   });
-  L.tileLayer('https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png', {
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, © <a href="https://maps.wikimedia.org">Wikimedia Maps</a>',
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+    attribution: '© Esri',
     maxZoom: 19
   }).addTo(gameMap);
 
@@ -1399,8 +1399,8 @@ function initResultsMap() {
   resultsMap = L.map('results-map', {
     center: [20, 10], zoom: 2, zoomControl: true
   });
-  L.tileLayer('https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png', {
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, © <a href="https://maps.wikimedia.org">Wikimedia Maps</a>',
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+    attribution: '© Esri',
     maxZoom: 19
   }).addTo(resultsMap);
 }
