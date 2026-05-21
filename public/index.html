@@ -1312,9 +1312,9 @@ function initGameMap() {
     center: [20, 10], zoom: 2, minZoom: 1, maxZoom: 12,
     zoomControl: true, attributionControl: true,
   });
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>, © <a href="https://carto.com">CARTO</a>',
-    subdomains: 'abcd', maxZoom: 19
+  L.tileLayer('https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, © <a href="https://maps.wikimedia.org">Wikimedia Maps</a>',
+    maxZoom: 19
   }).addTo(gameMap);
 
   gameMap.on('click', onMapClick);
@@ -1399,8 +1399,9 @@ function initResultsMap() {
   resultsMap = L.map('results-map', {
     center: [20, 10], zoom: 2, zoomControl: true
   });
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    attribution: '© OpenStreetMap, © CARTO', subdomains: 'abcd', maxZoom: 19
+  L.tileLayer('https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, © <a href="https://maps.wikimedia.org">Wikimedia Maps</a>',
+    maxZoom: 19
   }).addTo(resultsMap);
 }
 
