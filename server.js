@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { LOCATIONS_ALL, UNITS } = require('./locations');
+const { PSYCHOLOGISTS } = require('./public/avatars.js');
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -227,6 +228,20 @@ function defaultAvatar(name) {
   return { initials, color: colors[Math.abs(h) % colors.length], label: name };
 }
 
+function takenAvatarIds(room) {
+  const s = new Set();
+  for (const p of room.players.values()) if (p.avatar && p.avatar.id) s.add(p.avatar.id);
+  return s;
+}
+
+// Ensures each player in a room has a distinct psychologist avatar.
+function uniqueAvatar(room, requested) {
+  const taken = takenAvatarIds(room);
+  if (requested && requested.id && !taken.has(requested.id)) return requested;
+  const free = PSYCHOLOGISTS.find(p => !taken.has(p.id));
+  return free ? { ...free } : requested;
+}
+
 // ── Team / Duel helpers ───────────────────────────────────────────────────────
 const DUEL_HP = 5000;
 
@@ -406,12 +421,13 @@ io.on('connection', socket => {
     if (!room) return socket.emit('join-error', 'Room not found. Check the code and try again.');
     if (room.state !== 'lobby') return socket.emit('join-error', 'This game is already in progress.');
     if (room.players.size >= 8) return socket.emit('join-error', 'Room is full (8 players max).');
-    const av = avatar || defaultAvatar(name);
+    const av = uniqueAvatar(room, avatar || defaultAvatar(name));
+    const avatarReassigned = !!(avatar && avatar.id && av.id && av.id !== avatar.id);
     let joinTeam = null;
     if (room.teamMode) { const c = teamCounts(room); joinTeam = c.A <= c.B ? 'A' : 'B'; }
     room.players.set(socket.id, { id:socket.id, name:(name||'?').trim(), avatar:av, score:0, team:joinTeam });
     socket.join(code);
-    socket.emit('room-joined', { code, room: publicRoom(room) });
+    socket.emit('room-joined', { code, room: publicRoom(room), yourAvatar: av, avatarReassigned });
     socket.to(room.code).emit('player-joined', { name:(name||'?').trim(), avatar:av, room: publicRoom(room) });
   });
 

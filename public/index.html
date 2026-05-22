@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="/socket.io/socket.io.js"></script>
+<script src="avatars.js"></script>
 <style>
 #conn-status {
   position: fixed; bottom: 12px; right: 12px; z-index: 9999;
@@ -109,9 +110,11 @@ input[type=text]::placeholder { color: var(--muted); }
 .home-inner { position: relative; z-index: 1; text-align: center; max-width: 520px; width: 90%; }
 .home-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(139,92,246,0.12); border: 1px solid rgba(139,92,246,0.3); border-radius: 20px; padding: 5px 14px; font-size: 12px; font-weight: 700; color: #c4b5fd; margin-bottom: 20px; }
 .home-title {
-  font-size: clamp(42px,7vw,72px); font-weight: 900; line-height: 1;
+  font-size: clamp(42px,7vw,72px); font-weight: 900; line-height: 1.12;
+  padding: 0.04em 0.14em; margin-bottom: 12px;
   background: linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #34d399 100%);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 12px;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 .home-sub { font-size: 16px; color: var(--muted); margin-bottom: 40px; line-height: 1.5; }
 .home-actions { display: flex; flex-direction: column; gap: 12px; margin-bottom: 36px; }
@@ -237,10 +240,11 @@ input[type=text]::placeholder { color: var(--muted); }
 .player-host-tag { font-size: 10px; color: var(--gold); background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.25); padding: 2px 7px; border-radius: 8px; }
 
 .lobby-main {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 40px; background: radial-gradient(ellipse 60% 50% at 50% 30%, rgba(139,92,246,0.08) 0%, transparent 60%);
+  display: flex; flex-direction: column; align-items: center;
+  padding: 40px; overflow-y: auto; min-height: 0;
+  background: radial-gradient(ellipse 60% 50% at 50% 30%, rgba(139,92,246,0.08) 0%, transparent 60%);
 }
-.mode-selector { width: 100%; max-width: 600px; }
+.mode-selector { width: 100%; max-width: 600px; margin: auto 0; }
 .mode-selector h2 { font-size: 20px; margin-bottom: 6px; }
 .mode-selector p { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
 .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 32px; }
@@ -370,9 +374,9 @@ input[type=text]::placeholder { color: var(--muted); }
 ═══════════════════════════════════════════════ */
 #gameover-screen {
   background: radial-gradient(ellipse 80% 60% at 50% 30%, rgba(251,191,36,0.08) 0%, transparent 50%), var(--bg);
-  align-items: center; justify-content: center;
+  align-items: center; overflow-y: auto; padding: 24px 0;
 }
-.gameover-inner { text-align: center; max-width: 520px; width: 90%; }
+.gameover-inner { text-align: center; max-width: 520px; width: 90%; margin: auto; }
 .winner-card { margin: 0 auto 28px; max-width: 260px; padding: 24px; border-radius: 20px; background: linear-gradient(135deg, rgba(251,191,36,0.15), rgba(251,191,36,0.05)); border: 1px solid rgba(251,191,36,0.3); }
 .winner-trophy { font-size: 52px; margin-bottom: 8px; }
 .winner-label { font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 4px; }
@@ -388,6 +392,22 @@ input[type=text]::placeholder { color: var(--muted); }
 .fl-name { font-size: 14px; font-weight: 700; }
 .fl-score { font-size: 18px; font-weight: 900; color: var(--gold); }
 .gameover-actions { display: flex; gap: 10px; justify-content: center; }
+
+/* Game-over reveal animations */
+#gameover-screen.show-anim .winner-card { animation: winner-pop 0.7s cubic-bezier(.2,.8,.2,1.25) both; }
+#gameover-screen.show-anim .winner-trophy { display:inline-block; animation: trophy-bob 1.4s 0.5s ease-in-out infinite; }
+#gameover-screen.show-anim .final-leaderboard { animation: fade-rise 0.5s 0.25s ease both; }
+.fl-row { opacity: 0; }
+#gameover-screen.show-anim .fl-row { animation: fl-slide 0.5s ease both; }
+@keyframes winner-pop {
+  0% { opacity:0; transform: scale(0.5) translateY(24px); }
+  60% { opacity:1; transform: scale(1.06) translateY(0); }
+  100% { opacity:1; transform: scale(1) translateY(0); }
+}
+@keyframes trophy-bob { 0%,100%{ transform: translateY(0) rotate(-4deg);} 50%{ transform: translateY(-8px) rotate(4deg);} }
+@keyframes fl-slide { 0% { opacity:0; transform: translateX(-18px); } 100% { opacity:1; transform: translateX(0); } }
+@keyframes fade-rise { 0%{opacity:0; transform: translateY(14px);} 100%{opacity:1; transform: translateY(0);} }
+.fl-row.podium-1 { background: linear-gradient(90deg, rgba(251,191,36,0.14), transparent); border-radius: 8px; }
 
 /* ═══════════════════════════════════════════════
    TOAST
@@ -581,8 +601,9 @@ input[type=text]::placeholder { color: var(--muted); }
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
-  .lobby-layout { grid-template-columns: 1fr; }
+  .lobby-layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
   .lobby-sidebar { border-right: none; border-bottom: 1px solid var(--border2); max-height: 220px; padding: 16px; }
+  .lobby-main { padding: 24px 18px; }
   .game-body { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
   .loc-panel { max-height: 45vh; }
   .results-body { grid-template-rows: 1fr 40vh; }
@@ -1044,40 +1065,7 @@ input[type=text]::placeholder { color: var(--muted); }
 // ═══════════════════════════════════════════════════════════
 // PSYCHOLOGISTS (32)
 // ═══════════════════════════════════════════════════════════
-const PSYCHOLOGISTS = [
-  { id:'freud',     name:'Sigmund Freud',       short:'SF', color:'#8b5cf6', wiki:'Sigmund_Freud' },
-  { id:'jung',      name:'Carl Jung',            short:'CJ', color:'#06b6d4', wiki:'Carl_Jung' },
-  { id:'skinner',   name:'B.F. Skinner',         short:'BF', color:'#3b82f6', wiki:'B._F._Skinner' },
-  { id:'pavlov',    name:'Ivan Pavlov',           short:'IP', color:'#22c55e', wiki:'Ivan_Pavlov' },
-  { id:'piaget',    name:'Jean Piaget',           short:'JP', color:'#f59e0b', wiki:'Jean_Piaget' },
-  { id:'maslow',    name:'Abraham Maslow',        short:'AM', color:'#f97316', wiki:'Abraham_Maslow' },
-  { id:'james',     name:'William James',         short:'WJ', color:'#ec4899', wiki:'William_James' },
-  { id:'wundt',     name:'Wilhelm Wundt',         short:'WW', color:'#14b8a6', wiki:'Wilhelm_Wundt' },
-  { id:'milgram',   name:'Stanley Milgram',       short:'SM', color:'#ef4444', wiki:'Stanley_Milgram' },
-  { id:'zimbardo',  name:'Philip Zimbardo',       short:'PZ', color:'#a855f7', wiki:'Philip_Zimbardo' },
-  { id:'bandura',   name:'Albert Bandura',        short:'AB', color:'#0ea5e9', wiki:'Albert_Bandura' },
-  { id:'rogers',    name:'Carl Rogers',           short:'CR', color:'#84cc16', wiki:'Carl_Rogers' },
-  { id:'erikson',   name:'Erik Erikson',          short:'EE', color:'#f43f5e', wiki:'Erik_Erikson' },
-  { id:'vygotsky',  name:'Lev Vygotsky',          short:'LV', color:'#6366f1', wiki:'Lev_Vygotsky' },
-  { id:'beck',      name:'Aaron Beck',            short:'AK', color:'#10b981', wiki:'Aaron_T._Beck' },
-  { id:'watson',    name:'John Watson',           short:'JW', color:'#fb923c', wiki:'John_B._Watson' },
-  { id:'adler',     name:'Alfred Adler',          short:'AA', color:'#e879f9', wiki:'Alfred_Adler' },
-  { id:'afreud',    name:'Anna Freud',            short:'AN', color:'#38bdf8', wiki:'Anna_Freud' },
-  { id:'allport',   name:'Gordon Allport',        short:'GA', color:'#4ade80', wiki:'Gordon_Allport' },
-  { id:'kohlberg',  name:'Lawrence Kohlberg',     short:'LK', color:'#fbbf24', wiki:'Lawrence_Kohlberg' },
-  { id:'ainsworth', name:'Mary Ainsworth',        short:'MA', color:'#f472b6', wiki:'Mary_Ainsworth' },
-  { id:'harlow',    name:'Harry Harlow',          short:'HH', color:'#818cf8', wiki:'Harry_Harlow' },
-  { id:'festinger', name:'Leon Festinger',        short:'LF', color:'#34d399', wiki:'Leon_Festinger' },
-  { id:'miller',    name:'George Miller',         short:'GM', color:'#fb7185', wiki:'George_Armitage_Miller' },
-  { id:'loftus',    name:'Elizabeth Loftus',      short:'EL', color:'#a78bfa', wiki:'Elizabeth_Loftus' },
-  { id:'kahneman',  name:'Daniel Kahneman',       short:'DK', color:'#67e8f9', wiki:'Daniel_Kahneman' },
-  { id:'seligman',  name:'Martin Seligman',       short:'MG', color:'#86efac', wiki:'Martin_Seligman' },
-  { id:'ellis',     name:'Albert Ellis',          short:'AE', color:'#fde68a', wiki:'Albert_Ellis' },
-  { id:'frankl',    name:'Viktor Frankl',         short:'VF', color:'#c4b5fd', wiki:'Viktor_Frankl' },
-  { id:'lewin',     name:'Kurt Lewin',            short:'KL', color:'#bae6fd', wiki:'Kurt_Lewin' },
-  { id:'wechsler',  name:'David Wechsler',        short:'DW', color:'#bbf7d0', wiki:'David_Wechsler' },
-  { id:'binet',     name:'Alfred Binet',          short:'BN', color:'#fed7aa', wiki:'Alfred_Binet' },
-];
+const PSYCHOLOGISTS = window.PSYCHOLOGISTS;
 const PSYCH_BY_ID = Object.fromEntries(PSYCHOLOGISTS.map(p => [p.id, p]));
 const avatarImgCache = {};
 
@@ -1770,6 +1758,27 @@ function goToFinal() {
   socket.emit('next-round', { code: roomCode });
 }
 
+function triggerGameOverAnim() {
+  const sc = document.getElementById('gameover-screen');
+  sc.classList.remove('show-anim');
+  void sc.offsetWidth; // force reflow so animations restart
+  sc.classList.add('show-anim');
+}
+
+function countUp(el, target, duration = 1000, suffix = '') {
+  if (!el) return;
+  const start = performance.now();
+  const from = 0;
+  function step(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    el.textContent = Math.round(from + (target - from) * eased).toLocaleString() + suffix;
+    if (t < 1) requestAnimationFrame(step);
+    else el.textContent = target.toLocaleString() + suffix;
+  }
+  requestAnimationFrame(step);
+}
+
 // ═══════════════════════════════════════════════════════════
 // GAME OVER
 // ═══════════════════════════════════════════════════════════
@@ -1799,6 +1808,7 @@ function showGameOver(data) {
           <div class="team-panel team-b"><div class="tp-head">🔵 Team B</div><div class="tp-members">${roster('B')}</div></div>
         </div>
       </div>`;
+    triggerGameOverAnim();
     const playAgainBtn = document.getElementById('play-again-btn');
     const waitingMsg = document.getElementById('gameover-waiting');
     playAgainBtn.style.display = isHost ? '' : 'none';
@@ -1814,22 +1824,30 @@ function showGameOver(data) {
   const final = data.final || [];
   const winner = final[0];
   document.getElementById('winner-name').textContent = winner?.name ?? '—';
-  document.getElementById('winner-score').textContent = winner ? `${winner.score.toLocaleString()} pts` : '';
+  const winScoreEl = document.getElementById('winner-score');
 
   const list = document.getElementById('final-list');
   list.innerHTML = final.map((p, i) => {
     const medals = ['🥇','🥈','🥉'];
     const av = p.avatar || {};
-    return `<div class="fl-row">
+    return `<div class="fl-row${i===0?' podium-1':''}" style="animation-delay:${0.35 + i*0.12}s">
       <div class="fl-rank">${medals[i] || (i+1)}</div>
       ${avatarCircleHTML(av, 32)}
       <div class="fl-info">
         <div class="fl-name">${esc(p.name)} ${p.id === myId ? '<span class="st-me">you</span>' : ''}</div>
         <div style="font-size:10px;color:var(--muted)">${esc(av.name||'')}</div>
       </div>
-      <div class="fl-score">${p.score.toLocaleString()}</div>
+      <div class="fl-score" data-score="${p.score}">0</div>
     </div>`;
   }).join('');
+
+  // Trigger staggered reveal + score count-up
+  triggerGameOverAnim();
+  if (winner) countUp(winScoreEl, winner.score, 1100, ' pts'); else winScoreEl.textContent = '';
+  list.querySelectorAll('.fl-score').forEach((el, i) => {
+    const target = parseInt(el.dataset.score) || 0;
+    setTimeout(() => countUp(el, target, 900), 400 + i * 120);
+  });
 
   const playAgainBtn = document.getElementById('play-again-btn');
   const waitingMsg = document.getElementById('gameover-waiting');
@@ -2282,12 +2300,16 @@ socket.on('room-created', ({ code, room }) => {
   }
 });
 
-socket.on('room-joined', ({ code, room }) => {
+socket.on('room-joined', ({ code, room, yourAvatar, avatarReassigned }) => {
   roomCode = code;
   roomState = room;
   isHost = false;
+  if (yourAvatar) selectedAvatar = yourAvatar;
   closeJoinOverlay();
   enterLobby(room);
+  if (avatarReassigned && yourAvatar) {
+    toast(`That psychologist was taken — you're now ${yourAvatar.name}.`, 'info');
+  }
 });
 
 socket.on('join-error', (msg) => { showJoinError(msg); });
