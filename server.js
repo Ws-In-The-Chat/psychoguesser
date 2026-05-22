@@ -377,7 +377,12 @@ function finishRound(room) {
     if (a.points !== b.points) {
       winner = a.points > b.points ? 'A' : 'B';
       loser = winner === 'A' ? 'B' : 'A';
-      damage = Math.round((Math.max(a.points, b.points) - Math.min(a.points, b.points)) * mult);
+      // Damage is based on how far off the LOSING team's best guess was.
+      // distPoints range 0 (across the world) .. 5000 (bullseye), so the
+      // "miss" = 5000 - loserPoints. A far guess hurts a lot regardless of
+      // the multiplier; the multiplier just scales the stakes each round.
+      const loserPoints = Math.min(a.points, b.points);
+      damage = Math.round((5000 - loserPoints) * mult);
       room.teamHealth[loser] = Math.max(0, room.teamHealth[loser] - damage);
     }
     teamResult = {
