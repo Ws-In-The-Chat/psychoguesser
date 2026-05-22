@@ -167,6 +167,48 @@ input[type=text]::placeholder { color: var(--muted); }
 .topic-opt.selected { border-color: var(--accent2); background: rgba(6,182,212,0.12); color: #67e8f9; }
 .topic-opt:disabled { opacity: 0.45; cursor: not-allowed; }
 
+/* Team battle */
+.team-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 4px 0 8px; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border2); background: rgba(255,255,255,0.03); }
+.tt-title { font-size: 15px; font-weight: 800; }
+.tt-sub { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.4; max-width: 460px; }
+.switch { position: relative; display: inline-block; width: 52px; height: 30px; flex-shrink: 0; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; inset: 0; background: rgba(255,255,255,0.12); border-radius: 30px; cursor: pointer; transition: 0.2s; }
+.slider:before { content: ''; position: absolute; height: 22px; width: 22px; left: 4px; top: 4px; background: #fff; border-radius: 50%; transition: 0.2s; }
+.switch input:checked + .slider { background: var(--accent); }
+.switch input:checked + .slider:before { transform: translateX(22px); }
+.team-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 8px; }
+.team-panel { border-radius: 12px; padding: 14px; border: 1px solid var(--border2); }
+.team-panel.team-a { border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.06); }
+.team-panel.team-b { border-color: rgba(59,130,246,0.4); background: rgba(59,130,246,0.06); }
+.tp-head { font-size: 14px; font-weight: 800; margin-bottom: 10px; }
+.tp-members { display: flex; flex-direction: column; gap: 6px; min-height: 28px; margin-bottom: 12px; }
+.tp-member { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.tp-empty { font-size: 12px; color: var(--muted); font-style: italic; }
+.btn-team-join { width: 100%; padding: 9px; border-radius: 8px; border: none; font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit; transition: all 0.16s; }
+.btn-team-a { background: rgba(239,68,68,0.18); color: #fca5a5; }
+.btn-team-a:hover { background: rgba(239,68,68,0.3); }
+.btn-team-b { background: rgba(59,130,246,0.18); color: #93c5fd; }
+.btn-team-b:hover { background: rgba(59,130,246,0.3); }
+.btn-team-join:disabled { opacity: 0.5; cursor: default; }
+
+/* Team health bars (game + results) */
+.team-hp-wrap { display: flex; flex-direction: column; gap: 8px; margin: 0 0 12px; }
+.team-hp { }
+.team-hp-top { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+.team-hp-bar { height: 12px; border-radius: 6px; background: rgba(255,255,255,0.08); overflow: hidden; }
+.team-hp-fill { height: 100%; border-radius: 6px; transition: width 0.6s ease; }
+.team-hp-fill.a { background: linear-gradient(90deg, #ef4444, #f87171); }
+.team-hp-fill.b { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+.team-result-box { background: rgba(255,255,255,0.04); border: 1px solid var(--border2); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+.team-result-head { text-align: center; font-size: 16px; font-weight: 800; margin-bottom: 14px; }
+.team-result-scores { display: flex; justify-content: space-around; gap: 12px; margin-bottom: 14px; text-align: center; }
+.trs-team { flex: 1; }
+.trs-label { font-size: 12px; font-weight: 700; color: var(--muted); }
+.trs-pts { font-size: 24px; font-weight: 800; margin-top: 2px; }
+.trs-best { font-size: 11px; color: var(--muted); margin-top: 2px; }
+#game-team-hp { padding: 8px 16px 0; }
+
 /* ═══════════════════════════════════════════════
    LOBBY SCREEN
 ═══════════════════════════════════════════════ */
@@ -710,6 +752,27 @@ input[type=text]::placeholder { color: var(--muted); }
           </div>
         </div>
 
+        <div class="team-toggle-row" id="team-toggle-row">
+          <div>
+            <div class="tt-title">⚔️ Team Battle</div>
+            <div class="tt-sub">2 teams — each round, the closest guess wins and damages the other team. Multiplier rises each round.</div>
+          </div>
+          <label class="switch"><input type="checkbox" id="team-toggle" onchange="toggleTeam(this.checked)"><span class="slider"></span></label>
+        </div>
+
+        <div class="team-panels" id="team-panels" style="display:none">
+          <div class="team-panel team-a">
+            <div class="tp-head">🔴 Team A</div>
+            <div class="tp-members" id="team-a-members"></div>
+            <button class="btn-team-join btn-team-a" onclick="joinTeam('A')">Join Team A</button>
+          </div>
+          <div class="team-panel team-b">
+            <div class="tp-head">🔵 Team B</div>
+            <div class="tp-members" id="team-b-members"></div>
+            <button class="btn-team-join btn-team-b" onclick="joinTeam('B')">Join Team B</button>
+          </div>
+        </div>
+
         <div class="topic-picker-wrap" id="topic-picker-wrap">
           <div class="label">AP Psych Topic</div>
           <div class="topic-opts" id="topic-opts">
@@ -731,6 +794,17 @@ input[type=text]::placeholder { color: var(--muted); }
             <button class="time-opt" data-time="90" onclick="selectTime(90)">90s</button>
             <button class="time-opt" data-time="120" onclick="selectTime(120)">2 min</button>
             <button class="time-opt" data-time="999" onclick="selectTime(999)">No limit</button>
+          </div>
+        </div>
+
+        <div class="time-picker-wrap" id="rounds-picker-wrap">
+          <div class="label">Number of Rounds</div>
+          <div class="time-opts" id="rounds-opts">
+            <button class="time-opt" data-rounds="3" onclick="selectRounds(3)">3</button>
+            <button class="time-opt selected" data-rounds="5" onclick="selectRounds(5)">5</button>
+            <button class="time-opt" data-rounds="8" onclick="selectRounds(8)">8</button>
+            <button class="time-opt" data-rounds="10" onclick="selectRounds(10)">10</button>
+            <button class="time-opt" data-rounds="15" onclick="selectRounds(15)">15</button>
           </div>
         </div>
 
@@ -762,6 +836,8 @@ input[type=text]::placeholder { color: var(--muted); }
       </div>
     </div>
   </div>
+
+  <div id="game-team-hp" style="display:none"></div>
 
   <div class="game-body">
     <!-- Location Panel -->
@@ -816,6 +892,7 @@ input[type=text]::placeholder { color: var(--muted); }
     </div>
 
     <div class="results-scores">
+      <div id="team-result-slot"></div>
       <div class="scores-header">
         <h3>Round Scores</h3>
         <span class="badge badge-purple" id="results-round-badge"></span>
@@ -1248,6 +1325,8 @@ function enterLobby(room) {
   renderPlayers(room.players);
   updateModeUI(room.mode);
   updateUnitUI(room.unit);
+  updateRoundsUI(room);
+  renderTeams(room);
   updateStartBtn(room);
   fetchCommunityCount();
   showScreen('lobby-screen');
@@ -1299,9 +1378,72 @@ function updateUnitUI(unit) {
 
 function selectTime(t) {
   if (!isHost) return;
-  document.querySelectorAll('.time-opt').forEach(b =>
+  document.querySelectorAll('#time-opts .time-opt').forEach(b =>
     b.classList.toggle('selected', parseInt(b.dataset.time) === t));
   socket.emit('change-time', { code: roomCode, timeLimit: t });
+}
+
+function selectRounds(n) {
+  if (!isHost) return;
+  document.querySelectorAll('#rounds-opts .time-opt').forEach(b =>
+    b.classList.toggle('selected', parseInt(b.dataset.rounds) === n));
+  socket.emit('change-rounds', { code: roomCode, rounds: n });
+}
+
+function toggleTeam(on) {
+  if (!isHost) { document.getElementById('team-toggle').checked = !!(roomState && roomState.teamMode); return; }
+  socket.emit('toggle-team', { code: roomCode, on });
+}
+
+function joinTeam(team) {
+  socket.emit('set-team', { code: roomCode, team });
+}
+
+function renderTeams(room) {
+  const toggle = document.getElementById('team-toggle');
+  const panels = document.getElementById('team-panels');
+  if (!toggle || !panels) return;
+  toggle.checked = !!room.teamMode;
+  toggle.disabled = !isHost;
+  panels.style.display = room.teamMode ? '' : 'none';
+  // Hide topic/mode/rounds pickers when team battle is on? Keep them — they still apply.
+  if (!room.teamMode) return;
+  const me = (room.players || []).find(p => p.id === myId);
+  const myTeam = me ? me.team : null;
+  ['A','B'].forEach(t => {
+    const box = document.getElementById(`team-${t.toLowerCase()}-members`);
+    const members = (room.players || []).filter(p => p.team === t);
+    box.innerHTML = members.length
+      ? members.map(p => `<div class="tp-member">${avatarCircleHTML(p.avatar||{}, 26)}<span>${esc(p.name)}${p.id===myId?' (you)':''}</span></div>`).join('')
+      : '<div class="tp-empty">No players yet</div>';
+    const btn = document.querySelector(`.btn-team-${t.toLowerCase()}`);
+    if (btn) { btn.disabled = myTeam === t; btn.textContent = myTeam === t ? `You're on Team ${t}` : `Join Team ${t}`; }
+  });
+}
+
+function teamHpBarsHTML(health) {
+  const max = 5000;
+  const pct = v => Math.max(0, Math.min(100, (v / max) * 100));
+  return `
+    <div class="team-hp">
+      <div class="team-hp-top"><span style="color:#fca5a5">🔴 Team A</span><span>${health.A}</span></div>
+      <div class="team-hp-bar"><div class="team-hp-fill a" style="width:${pct(health.A)}%"></div></div>
+    </div>
+    <div class="team-hp">
+      <div class="team-hp-top"><span style="color:#93c5fd">🔵 Team B</span><span>${health.B}</span></div>
+      <div class="team-hp-bar"><div class="team-hp-fill b" style="width:${pct(health.B)}%"></div></div>
+    </div>`;
+}
+
+function updateGameTeamHp(room) {
+  const el = document.getElementById('game-team-hp');
+  if (!el) return;
+  if (room && room.teamMode) {
+    el.style.display = '';
+    el.innerHTML = `<div class="team-hp-wrap">${teamHpBarsHTML(room.teamHealth || {A:5000,B:5000})}</div>`;
+  } else {
+    el.style.display = 'none';
+  }
 }
 
 function selectMode(mode) {
@@ -1324,6 +1466,20 @@ function updateStartBtn(room) {
   const btn = document.getElementById('start-btn');
   const msg = document.getElementById('lobby-waiting-msg');
   if (isHost) {
+    if (room.teamMode) {
+      const a = room.players.filter(p => p.team === 'A').length;
+      const b = room.players.filter(p => p.team === 'B').length;
+      if (!a || !b) {
+        btn.disabled = true;
+        btn.textContent = '⚔️ Need a player on each team';
+        msg.textContent = 'Both Team A and Team B need at least one player to start.';
+        return;
+      }
+      btn.disabled = false;
+      btn.textContent = '⚔️ Start Battle';
+      msg.textContent = `Team A: ${a} · Team B: ${b} — ready to battle!`;
+      return;
+    }
     btn.disabled = false;
     btn.textContent = '🚀 Start Game';
     msg.textContent = room.players.length === 1 ? 'You can play solo or wait for friends to join.' : `${room.players.length} player${room.players.length > 1 ? 's' : ''} ready!`;
@@ -1351,9 +1507,9 @@ function initGameMap() {
     center: [20, 10], zoom: 2, minZoom: 1, maxZoom: 19,
     zoomControl: true, attributionControl: true,
   });
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>, © <a href="https://carto.com">CARTO</a>',
-    subdomains: 'abcd', maxZoom: 19
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles © Esri', maxZoom: 19,
+    updateWhenZooming: false, keepBuffer: 4, crossOrigin: true
   }).addTo(gameMap);
 
   gameMap.on('click', onMapClick);
@@ -1438,9 +1594,9 @@ function initResultsMap() {
   resultsMap = L.map('results-map', {
     center: [20, 10], zoom: 2, zoomControl: true
   });
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>, © <a href="https://carto.com">CARTO</a>',
-    subdomains: 'abcd', maxZoom: 19
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles © Esri', maxZoom: 19,
+    updateWhenZooming: false, keepBuffer: 4, crossOrigin: true
   }).addTo(resultsMap);
 }
 
@@ -1525,6 +1681,27 @@ function showResults(data) {
   document.getElementById('rf-text').textContent = answer.fact;
   fact.style.display = '';
 
+  // Team duel result
+  const teamSlot = document.getElementById('team-result-slot');
+  if (data.teamResult && room.teamMode) {
+    const tr = data.teamResult;
+    const winLabel = tr.winner ? `🔴 Team A wins the round!`.replace('A', tr.winner) : 'Round tied — no damage';
+    const winText = tr.winner
+      ? `Team ${tr.winner} wins — Team ${tr.loser} takes <b>${tr.damage.toLocaleString()}</b> damage (×${tr.mult})`
+      : 'Both teams tied — no damage dealt';
+    teamSlot.innerHTML = `
+      <div class="team-result-box">
+        <div class="team-result-head">${winText}</div>
+        <div class="team-result-scores">
+          <div class="trs-team"><div class="trs-label" style="color:#fca5a5">🔴 Team A</div><div class="trs-pts">${tr.a.toLocaleString()}</div><div class="trs-best">${tr.bestA ? esc(tr.bestA.name)+' · '+tr.bestA.km.toLocaleString()+' km' : 'no guess'}</div></div>
+          <div class="trs-team"><div class="trs-label" style="color:#93c5fd">🔵 Team B</div><div class="trs-pts">${tr.b.toLocaleString()}</div><div class="trs-best">${tr.bestB ? esc(tr.bestB.name)+' · '+tr.bestB.km.toLocaleString()+' km' : 'no guess'}</div></div>
+        </div>
+        <div class="team-hp-wrap">${teamHpBarsHTML(tr.health)}</div>
+      </div>`;
+  } else {
+    teamSlot.innerHTML = '';
+  }
+
   // Score table
   const tbody = document.getElementById('score-table');
   tbody.innerHTML = results.map((r, i) => {
@@ -1552,10 +1729,44 @@ function goToFinal() {
 // GAME OVER
 // ═══════════════════════════════════════════════════════════
 function showGameOver(data) {
-  const { final, room } = data;
+  const { room } = data;
   roomState = room;
   showScreen('gameover-screen');
 
+  // Team battle game over
+  if (data.teamMode) {
+    const { teamHealth, winningTeam } = data;
+    const list = document.getElementById('final-list');
+    if (winningTeam) {
+      document.getElementById('winner-name').textContent = `Team ${winningTeam} wins!`;
+      document.getElementById('winner-score').textContent = `${teamHealth[winningTeam].toLocaleString()} HP remaining`;
+    } else {
+      document.getElementById('winner-name').textContent = "It's a draw!";
+      document.getElementById('winner-score').textContent = `${teamHealth.A.toLocaleString()} HP each`;
+    }
+    const roster = t => (room.players||[]).filter(p=>p.team===t)
+      .map(p => `<div class="tp-member">${avatarCircleHTML(p.avatar||{},24)}<span>${esc(p.name)}${p.id===myId?' (you)':''}</span></div>`).join('') || '<div class="tp-empty">—</div>';
+    list.innerHTML = `
+      <div class="team-result-box" style="margin:0">
+        <div class="team-hp-wrap">${teamHpBarsHTML(teamHealth)}</div>
+        <div class="team-panels" style="margin-top:12px">
+          <div class="team-panel team-a"><div class="tp-head">🔴 Team A</div><div class="tp-members">${roster('A')}</div></div>
+          <div class="team-panel team-b"><div class="tp-head">🔵 Team B</div><div class="tp-members">${roster('B')}</div></div>
+        </div>
+      </div>`;
+    const playAgainBtn = document.getElementById('play-again-btn');
+    const waitingMsg = document.getElementById('gameover-waiting');
+    playAgainBtn.style.display = isHost ? '' : 'none';
+    waitingMsg.textContent = isHost ? '' : 'Waiting for the host to start a new game...';
+    document.getElementById('daily-submit-wrap').style.display = 'none';
+    if (winningTeam) {
+      const me = (room.players||[]).find(p=>p.id===myId);
+      if (me && me.team === winningTeam) launchConfetti();
+    }
+    return;
+  }
+
+  const final = data.final || [];
   const winner = final[0];
   document.getElementById('winner-name').textContent = winner?.name ?? '—';
   document.getElementById('winner-score').textContent = winner ? `${winner.score.toLocaleString()} pts` : '';
@@ -1665,8 +1876,9 @@ function onRoundStart(data) {
 
   // Update topbar
   document.getElementById('topbar-round').textContent = `Round ${round}/${totalRounds}`;
-  document.getElementById('mode-badge').textContent = { classic:'Classic', sprint:'⚡ Sprint', detective:'🔍 Detective', practice:'📖 Practice' }[mode] || mode;
+  document.getElementById('mode-badge').textContent = room.teamMode ? '⚔️ Team Battle' : ({ classic:'Classic', sprint:'⚡ Sprint', detective:'🔍 Detective', practice:'📖 Practice' }[mode] || mode);
   renderTopbarScores(room.players);
+  updateGameTeamHp(room);
 
   // Reset map and clear live guess markers from previous round
   if (gameMap) {
@@ -1775,8 +1987,9 @@ function openCreatorOverlay() {
   setTimeout(() => {
     if (!creatorMap) {
       creatorMap = L.map('creator-map', { center: [20, 10], zoom: 2 });
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '© OpenStreetMap, © CARTO', subdomains: 'abcd', maxZoom: 19
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles © Esri', maxZoom: 19,
+        updateWhenZooming: false, keepBuffer: 4, crossOrigin: true
       }).addTo(creatorMap);
       creatorMap.on('click', onCreatorMapClick);
     }
@@ -2032,6 +2245,7 @@ socket.on('room-joined', ({ code, room }) => {
 });
 
 socket.on('join-error', (msg) => { showJoinError(msg); });
+socket.on('start-error', (msg) => { toast(msg, 'warn'); });
 
 socket.on('player-joined', ({ name, room }) => {
   roomState = room;
@@ -2054,13 +2268,28 @@ socket.on('room-updated', ({ room }) => {
   renderPlayers(room.players);
   updateModeUI(room.mode);
   updateUnitUI(room.unit);
+  renderTeams(room);
   updateStartBtn(room);
   // Sync time picker selection
   if (room.customTimeLimit) {
-    document.querySelectorAll('.time-opt').forEach(b =>
+    document.querySelectorAll('#time-opts .time-opt').forEach(b =>
       b.classList.toggle('selected', parseInt(b.dataset.time) === room.customTimeLimit));
   }
+  updateRoundsUI(room);
 });
+
+function updateRoundsUI(room) {
+  const n = room.totalRounds;
+  document.querySelectorAll('#rounds-opts .time-opt').forEach(b =>
+    b.classList.toggle('selected', parseInt(b.dataset.rounds) === n));
+  const wrap = document.getElementById('rounds-picker-wrap');
+  if (wrap) {
+    // Sprint and community use fixed round counts
+    wrap.style.display = (room.mode === 'sprint' || room.mode === 'community') ? 'none' : '';
+    wrap.style.pointerEvents = isHost ? '' : 'none';
+    wrap.style.opacity = isHost ? '1' : '0.7';
+  }
+}
 
 socket.on('back-to-lobby', ({ room }) => {
   roomState = room;

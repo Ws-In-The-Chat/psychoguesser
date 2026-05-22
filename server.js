@@ -157,22 +157,36 @@ function timeLimitFor(room) {
   return { classic:60, sprint:25, detective:80, practice:999 }[room.mode] ?? 60;
 }
 
-function roundsFor(mode) {
-  return { classic:5, sprint:8, detective:5, practice:5, community:5 }[mode] ?? 5;
+function roundsFor(mode, customRounds) {
+  // Sprint and community keep fixed round counts; others honor the host's choice
+  if (mode === 'sprint') return 8;
+  if (mode === 'community') return 5;
+  if (customRounds && customRounds >= 1 && customRounds <= 20) return customRounds;
+  return { classic:5, detective:5, practice:5 }[mode] ?? 5;
 }
 
 function poolForUnit(unit) {
   return (UNITS[unit] || UNITS.all).locations;
 }
 
-function pickLocations(mode, unit = 'all') {
+function pickLocations(mode, unit = 'all', customRounds) {
+  const n = roundsFor(mode, customRounds);
   if (mode === 'community') {
     const locs = readCommunityLocations();
     const pool = locs.length >= 5 ? locs : LOCATIONS_ALL;
-    return [...pool].sort(() => Math.random()-0.5).slice(0, 5);
+    return [...pool].sort(() => Math.random()-0.5).slice(0, n);
   }
-  const shuffled = [...poolForUnit(unit)].sort(() => Math.random()-0.5);
-  return shuffled.slice(0, roundsFor(mode));
+  const pool = poolForUnit(unit);
+  const shuffled = [...pool].sort(() => Math.random()-0.5);
+  // If more rounds requested than the pool holds, top up from the full pool
+  if (n > shuffled.length) {
+    const extra = [...LOCATIONS_ALL].sort(() => Math.random()-0.5);
+    for (const loc of extra) {
+      if (shuffled.length >= n) break;
+      if (!shuffled.includes(loc)) shuffled.push(loc);
+    }
+  }
+  return shuffled.slice(0, n);
 }
 
 function defaultAvatar(name) {
@@ -184,6 +198,37 @@ function defaultAvatar(name) {
   return { initials, color: colors[Math.abs(h) % colors.length], label: name };
 }
 
+// ── Team / Duel helpers ───────────────────────────────────────────────────────
+const DUEL_HP = 5000;
+
+function roundMultiplier(roundIndexZeroBased) {
+  // Rounds 1-3 = x1, then +0.5 each round (r4=1.5, r5=2, r6=2.5 ...)
+  const n = roundIndexZeroBased + 1;
+  return n <= 3 ? 1 : 1 + (n - 3) * 0.5;
+}
+
+function distPoints(km) {
+  return Math.round(5000 * Math.exp(-km / 150));
+}
+
+function teamBest(room, team) {
+  let best = -1, bestPlayer = null;
+  for (const p of room.players.values()) {
+    if (p.team !== team) continue;
+    const ans = room.roundAnswers.get(p.id);
+    if (!ans) continue;
+    const dp = distPoints(ans.km);
+    if (dp > best) { best = dp; bestPlayer = p; }
+  }
+  return { points: best < 0 ? 0 : best, player: bestPlayer, km: bestPlayer ? room.roundAnswers.get(bestPlayer.id).km : null };
+}
+
+function teamCounts(room) {
+  let A = 0, B = 0;
+  for (const p of room.players.values()) { if (p.team === 'A') A++; else if (p.team === 'B') B++; }
+  return { A, B };
+}
+
 function publicRoom(room) {
   return {
     code: room.code,
@@ -193,12 +238,15 @@ function publicRoom(room) {
     unit: room.unit || 'all',
     unitName: (UNITS[room.unit || 'all'] || UNITS.all).name,
     customTimeLimit: room.customTimeLimit || null,
+    customRounds: room.customRounds || null,
+    teamMode: room.teamMode || false,
+    teamHealth: room.teamHealth || { A: DUEL_HP, B: DUEL_HP },
     isDaily: room.isDaily || false,
     round: room.round,
     totalRounds: room.locations.length,
     guessCount: room.roundAnswers.size,
     players: Array.from(room.players.values()).map(p => ({
-      id: p.id, name: p.name, avatar: p.avatar, score: p.score
+      id: p.id, name: p.name, avatar: p.avatar, score: p.score, team: p.team || null
     }))
   };
 }
@@ -251,25 +299,55 @@ function finishRound(room) {
   const results = Array.from(room.players.values()).map(p => {
     const ans = room.roundAnswers.get(p.id);
     return {
-      id: p.id, name: p.name, avatar: p.avatar, totalScore: p.score,
+      id: p.id, name: p.name, avatar: p.avatar, totalScore: p.score, team: p.team || null,
       roundPts: ans?.pts ?? 0,
       guess: ans ? { lat: ans.lat, lng: ans.lng } : null,
       km: ans ? Math.round(ans.km) : null,
     };
   }).sort((a, b) => b.roundPts - a.roundPts);
 
+  // Team duel scoring
+  let teamResult = null;
+  if (room.teamMode) {
+    const a = teamBest(room, 'A');
+    const b = teamBest(room, 'B');
+    const mult = roundMultiplier(room.round);
+    let winner = null, loser = null, damage = 0;
+    if (a.points !== b.points) {
+      winner = a.points > b.points ? 'A' : 'B';
+      loser = winner === 'A' ? 'B' : 'A';
+      damage = Math.round((Math.max(a.points, b.points) - Math.min(a.points, b.points)) * mult);
+      room.teamHealth[loser] = Math.max(0, room.teamHealth[loser] - damage);
+    }
+    teamResult = {
+      a: a.points, b: b.points, winner, loser, damage, mult,
+      health: { A: room.teamHealth.A, B: room.teamHealth.B },
+      bestA: a.player ? { name: a.player.name, avatar: a.player.avatar, km: Math.round(a.km) } : null,
+      bestB: b.player ? { name: b.player.name, avatar: b.player.avatar, km: Math.round(b.km) } : null,
+    };
+  }
+
+  const knockout = room.teamMode && (room.teamHealth.A <= 0 || room.teamHealth.B <= 0);
+
   io.to(room.code).emit('round-results', {
     results,
+    teamResult,
     answer: { lat: loc.lat, lng: loc.lng, name: loc.name, city: loc.city, fact: loc.fact, gradient: loc.gradient, icon: loc.icon, wikiTitle: loc.wikiTitle },
-    isLast: room.round >= room.locations.length - 1,
+    isLast: knockout || room.round >= room.locations.length - 1,
     room: publicRoom(room),
   });
 }
 
 function finishGame(room) {
   room.state = 'finished';
-  const final = Array.from(room.players.values()).sort((a, b) => b.score - a.score);
-  io.to(room.code).emit('game-over', { final, room: publicRoom(room) });
+  if (room.teamMode) {
+    const { A, B } = room.teamHealth;
+    const winningTeam = A === B ? null : (A > B ? 'A' : 'B');
+    io.to(room.code).emit('game-over', { teamMode: true, teamHealth: { A, B }, winningTeam, room: publicRoom(room) });
+  } else {
+    const final = Array.from(room.players.values()).sort((a, b) => b.score - a.score);
+    io.to(room.code).emit('game-over', { final, room: publicRoom(room) });
+  }
 }
 
 // ── Socket.io ────────────────────────────────────────────────────────────────
@@ -281,11 +359,12 @@ io.on('connection', socket => {
     const room = {
       code, host: socket.id, players: new Map(), state: 'lobby',
       mode, unit: safeUnit, locations: pickLocations(mode, safeUnit), customTimeLimit: null,
+      customRounds: null, teamMode: false, teamHealth: { A: DUEL_HP, B: DUEL_HP },
       round: 0, roundAnswers: new Map(),
       roundTimer: null, roundStart: 0, clueTimers: [],
     };
     const av = avatar || defaultAvatar(name);
-    room.players.set(socket.id, { id:socket.id, name:name.trim(), avatar:av, score:0 });
+    room.players.set(socket.id, { id:socket.id, name:name.trim(), avatar:av, score:0, team:null });
     rooms.set(code, room);
     socket.join(code);
     socket.emit('room-created', { code, room: publicRoom(room) });
@@ -297,7 +376,9 @@ io.on('connection', socket => {
     if (room.state !== 'lobby') return socket.emit('join-error', 'This game is already in progress.');
     if (room.players.size >= 8) return socket.emit('join-error', 'Room is full (8 players max).');
     const av = avatar || defaultAvatar(name);
-    room.players.set(socket.id, { id:socket.id, name:(name||'?').trim(), avatar:av, score:0 });
+    let joinTeam = null;
+    if (room.teamMode) { const c = teamCounts(room); joinTeam = c.A <= c.B ? 'A' : 'B'; }
+    room.players.set(socket.id, { id:socket.id, name:(name||'?').trim(), avatar:av, score:0, team:joinTeam });
     socket.join(code);
     socket.emit('room-joined', { code, room: publicRoom(room) });
     socket.to(room.code).emit('player-joined', { name:(name||'?').trim(), avatar:av, room: publicRoom(room) });
@@ -308,7 +389,7 @@ io.on('connection', socket => {
     if (!room || room.host !== socket.id || room.state !== 'lobby') return;
     room.mode = mode;
     room.customTimeLimit = null;
-    room.locations = pickLocations(mode, room.unit);
+    room.locations = pickLocations(mode, room.unit, room.customRounds);
     io.to(code).emit('room-updated', { room: publicRoom(room) });
   });
 
@@ -316,7 +397,16 @@ io.on('connection', socket => {
     const room = rooms.get(code);
     if (!room || room.host !== socket.id || room.state !== 'lobby') return;
     room.unit = UNITS[unit] ? unit : 'all';
-    room.locations = pickLocations(room.mode, room.unit);
+    room.locations = pickLocations(room.mode, room.unit, room.customRounds);
+    io.to(code).emit('room-updated', { room: publicRoom(room) });
+  });
+
+  socket.on('change-rounds', ({ code, rounds }) => {
+    const room = rooms.get(code);
+    if (!room || room.host !== socket.id || room.state !== 'lobby') return;
+    const n = parseInt(rounds);
+    room.customRounds = (n >= 1 && n <= 20) ? n : null;
+    room.locations = pickLocations(room.mode, room.unit, room.customRounds);
     io.to(code).emit('room-updated', { room: publicRoom(room) });
   });
 
@@ -327,9 +417,36 @@ io.on('connection', socket => {
     io.to(code).emit('room-updated', { room: publicRoom(room) });
   });
 
+  socket.on('toggle-team', ({ code, on }) => {
+    const room = rooms.get(code);
+    if (!room || room.host !== socket.id || room.state !== 'lobby') return;
+    room.teamMode = !!on;
+    if (room.teamMode) {
+      let i = 0;
+      for (const p of room.players.values()) {
+        if (p.team !== 'A' && p.team !== 'B') { p.team = (i % 2 === 0) ? 'A' : 'B'; i++; }
+      }
+    }
+    io.to(code).emit('room-updated', { room: publicRoom(room) });
+  });
+
+  socket.on('set-team', ({ code, team }) => {
+    const room = rooms.get(code);
+    if (!room || room.state !== 'lobby') return;
+    if (team !== 'A' && team !== 'B') return;
+    const p = room.players.get(socket.id);
+    if (p) p.team = team;
+    io.to(code).emit('room-updated', { room: publicRoom(room) });
+  });
+
   socket.on('start-game', ({ code }) => {
     const room = rooms.get(code);
     if (!room || room.host !== socket.id || room.state !== 'lobby') return;
+    if (room.teamMode) {
+      const c = teamCounts(room);
+      if (!c.A || !c.B) return socket.emit('start-error', 'Both teams need at least one player.');
+      room.teamHealth = { A: DUEL_HP, B: DUEL_HP };
+    }
     beginRound(room);
   });
 
@@ -372,7 +489,8 @@ io.on('connection', socket => {
     const room = rooms.get(code);
     if (!room || room.host !== socket.id || room.state !== 'results') return;
     room.round++;
-    if (room.round >= room.locations.length) finishGame(room);
+    const knockout = room.teamMode && (room.teamHealth.A <= 0 || room.teamHealth.B <= 0);
+    if (knockout || room.round >= room.locations.length) finishGame(room);
     else beginRound(room);
   });
 
@@ -381,8 +499,9 @@ io.on('connection', socket => {
     if (!room || room.host !== socket.id) return;
     room.state = 'lobby';
     room.round = 0;
-    room.locations = room.isDaily ? getDailyLocations() : pickLocations(room.mode, room.unit);
+    room.locations = room.isDaily ? getDailyLocations() : pickLocations(room.mode, room.unit, room.customRounds);
     room.roundAnswers.clear();
+    room.teamHealth = { A: DUEL_HP, B: DUEL_HP };
     room.players.forEach(p => { p.score = 0; });
     io.to(code).emit('room-updated', { room: publicRoom(room) });
     io.to(code).emit('back-to-lobby', { room: publicRoom(room) });
