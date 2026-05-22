@@ -230,6 +230,13 @@ input[type=text]::placeholder { color: var(--muted); }
 .move.same { color: var(--muted); }
 .move.new { color: #a78bfa; font-size: 9px; font-weight: 800; }
 
+/* Standings popup modal */
+#standings-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.82); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; z-index: 940; padding: 16px; }
+#standings-modal.open { display: flex; }
+.standings-modal-card { width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; animation: winner-pop 0.45s cubic-bezier(.2,.8,.2,1.25) both; }
+.standings-modal-card .standings-box { margin-bottom: 14px; }
+.standings-modal-card .standings-box h3 { font-size: 15px; }
+
 /* ═══════════════════════════════════════════════
    LOBBY SCREEN
 ═══════════════════════════════════════════════ */
@@ -700,6 +707,14 @@ input[type=text]::placeholder { color: var(--muted); }
   </div>
 </div>
 
+<!-- Standings popup (after each round) -->
+<div id="standings-modal" onclick="if(event.target===this)closeStandingsModal()">
+  <div class="standings-modal-card">
+    <div id="standings-modal-body"></div>
+    <button class="btn btn-primary btn-lg" style="width:100%" onclick="closeStandingsModal()">Continue →</button>
+  </div>
+</div>
+
 <!-- Create / Join overlays -->
 <div id="join-overlay">
   <div class="join-box" id="join-box-inner">
@@ -933,7 +948,6 @@ input[type=text]::placeholder { color: var(--muted); }
 
     <div class="results-scores">
       <div id="team-result-slot"></div>
-      <div id="standings-slot"></div>
       <div class="scores-header">
         <h3>This Round</h3>
         <span class="badge badge-purple" id="results-round-badge"></span>
@@ -1654,7 +1668,7 @@ function initResultsMap() {
 }
 
 function renderStandings(results, room) {
-  const slot = document.getElementById('standings-slot');
+  const slot = document.getElementById('standings-modal-body');
   if (!slot) return;
   const standings = [...results].sort((a, b) => b.totalScore - a.totalScore);
   standings.forEach((r, i) => { r._rank = i + 1; });
@@ -1699,6 +1713,13 @@ function renderStandings(results, room) {
   const newRanks = {};
   standings.forEach(r => { newRanks[r.id] = r._rank; });
   prevStandings = newRanks;
+}
+
+function openStandingsModal() {
+  document.getElementById('standings-modal').classList.add('open');
+}
+function closeStandingsModal() {
+  document.getElementById('standings-modal').classList.remove('open');
 }
 
 function showResults(data) {
@@ -1803,8 +1824,11 @@ function showResults(data) {
     teamSlot.innerHTML = '';
   }
 
-  // Cumulative standings (top 5 + you) with movement
-  renderStandings(results, room);
+  // Cumulative standings popup (multiplayer only) — pops up after each round
+  if ((room.players || []).length > 1) {
+    renderStandings(results, room);
+    openStandingsModal();
+  }
 
   // Score table
   const tbody = document.getElementById('score-table');
@@ -1856,6 +1880,7 @@ function countUp(el, target, duration = 1000, suffix = '') {
 function showGameOver(data) {
   const { room } = data;
   roomState = room;
+  closeStandingsModal();
   showScreen('gameover-screen');
 
   // Team battle game over
@@ -2006,6 +2031,7 @@ function onRoundStart(data) {
   myGuess = null;
   guessSubmitted = false;
   if (round <= 1) prevStandings = {}; // fresh standings each new game
+  closeStandingsModal();
 
   showScreen('game-screen');
 
