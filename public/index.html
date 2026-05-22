@@ -212,6 +212,24 @@ input[type=text]::placeholder { color: var(--muted); }
 .trs-best { font-size: 11px; color: var(--muted); margin-top: 2px; }
 #game-team-hp { padding: 8px 16px 0; }
 
+/* Per-round standings (top 5 + movement) */
+.standings-box { background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(6,182,212,0.05)); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; margin-bottom: 16px; }
+.standings-box h3 { font-size: 13px; color: #c4b5fd; margin-bottom: 10px; letter-spacing: 0.04em; text-transform: uppercase; font-weight: 800; }
+.stand-row { display: flex; align-items: center; gap: 10px; padding: 8px 6px; border-bottom: 1px solid var(--border2); opacity: 0; animation: fl-slide 0.45s ease both; border-radius: 8px; }
+.stand-row:last-child { border-bottom: none; }
+.stand-row.you { background: rgba(139,92,246,0.14); }
+.stand-row.gap { opacity: 0.5; }
+.stand-rank { width: 22px; text-align: center; font-weight: 900; font-size: 14px; color: var(--muted); flex-shrink: 0; }
+.stand-info { flex: 1; min-width: 0; }
+.stand-name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stand-sub { font-size: 10px; color: var(--muted); }
+.stand-total { font-size: 17px; font-weight: 900; color: var(--gold); flex-shrink: 0; }
+.move { font-size: 12px; font-weight: 900; width: 40px; text-align: center; flex-shrink: 0; }
+.move.up { color: #34d399; }
+.move.down { color: #f87171; }
+.move.same { color: var(--muted); }
+.move.new { color: #a78bfa; font-size: 9px; font-weight: 800; }
+
 /* ═══════════════════════════════════════════════
    LOBBY SCREEN
 ═══════════════════════════════════════════════ */
@@ -915,8 +933,9 @@ input[type=text]::placeholder { color: var(--muted); }
 
     <div class="results-scores">
       <div id="team-result-slot"></div>
+      <div id="standings-slot"></div>
       <div class="scores-header">
-        <h3>Round Scores</h3>
+        <h3>This Round</h3>
         <span class="badge badge-purple" id="results-round-badge"></span>
       </div>
       <table class="score-table" id="score-table"></table>
@@ -1132,6 +1151,7 @@ let lastResults = null;
 let isHost = false;
 let isSolo = false;
 let isDaily = false;
+let prevStandings = {}; // playerId -> rank in the previous round, for movement arrows
 
 let dailyUUID = localStorage.getItem('pg-uuid');
 if (!dailyUUID) {
@@ -1633,6 +1653,54 @@ function initResultsMap() {
   }).addTo(resultsMap);
 }
 
+function renderStandings(results, room) {
+  const slot = document.getElementById('standings-slot');
+  if (!slot) return;
+  const standings = [...results].sort((a, b) => b.totalScore - a.totalScore);
+  standings.forEach((r, i) => { r._rank = i + 1; });
+
+  const isFirstRound = (room.round || 1) <= 1;
+  const moveBadge = (r) => {
+    if (isFirstRound) return '<span class="move same">—</span>';
+    const prev = prevStandings[r.id];
+    if (prev == null) return '<span class="move new">NEW</span>';
+    const delta = prev - r._rank;
+    if (delta > 0) return `<span class="move up">▲${delta}</span>`;
+    if (delta < 0) return `<span class="move down">▼${-delta}</span>`;
+    return '<span class="move same">—</span>';
+  };
+
+  // Top 5, plus the local player if they're outside the top 5
+  const top = standings.slice(0, 5);
+  const meOutside = standings.find(r => r.id === myId && r._rank > 5);
+  const rows = [...top];
+  if (meOutside) rows.push({ _gap: true }, meOutside);
+
+  slot.innerHTML = `
+    <div class="standings-box">
+      <h3>🏆 Standings — Round ${room.round}/${room.totalRounds}</h3>
+      ${rows.map((r, i) => {
+        if (r._gap) return '<div class="stand-row gap" style="justify-content:center;animation-delay:0s">···</div>';
+        const medal = r._rank === 1 ? '🥇' : r._rank === 2 ? '🥈' : r._rank === 3 ? '🥉' : r._rank;
+        return `<div class="stand-row${r.id === myId ? ' you' : ''}" style="animation-delay:${i * 0.09}s">
+          <div class="stand-rank">${medal}</div>
+          ${avatarCircleHTML(r.avatar || {}, 32)}
+          <div class="stand-info">
+            <div class="stand-name">${esc(r.name)}${r.id === myId ? ' <span class="st-me">you</span>' : ''}</div>
+            <div class="stand-sub">+${r.roundPts.toLocaleString()} this round</div>
+          </div>
+          ${moveBadge(r)}
+          <div class="stand-total">${r.totalScore.toLocaleString()}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+  // Remember this round's ranks for next round's movement
+  const newRanks = {};
+  standings.forEach(r => { newRanks[r.id] = r._rank; });
+  prevStandings = newRanks;
+}
+
 function showResults(data) {
   lastResults = data;
   stopTimer();
@@ -1734,6 +1802,9 @@ function showResults(data) {
   } else {
     teamSlot.innerHTML = '';
   }
+
+  // Cumulative standings (top 5 + you) with movement
+  renderStandings(results, room);
 
   // Score table
   const tbody = document.getElementById('score-table');
@@ -1934,6 +2005,7 @@ function onRoundStart(data) {
   roomState = room;
   myGuess = null;
   guessSubmitted = false;
+  if (round <= 1) prevStandings = {}; // fresh standings each new game
 
   showScreen('game-screen');
 
@@ -2300,7 +2372,7 @@ socket.on('room-created', ({ code, room }) => {
   }
 });
 
-socket.on('room-joined', ({ code, room, yourAvatar, avatarReassigned }) => {
+socket.on('room-joined', ({ code, room, yourAvatar, avatarReassigned, yourName, nameReassigned }) => {
   roomCode = code;
   roomState = room;
   isHost = false;
@@ -2309,6 +2381,9 @@ socket.on('room-joined', ({ code, room, yourAvatar, avatarReassigned }) => {
   enterLobby(room);
   if (avatarReassigned && yourAvatar) {
     toast(`That psychologist was taken — you're now ${yourAvatar.name}.`, 'info');
+  }
+  if (nameReassigned && yourName) {
+    toast(`That name was taken — you're now "${yourName}".`, 'info');
   }
 });
 

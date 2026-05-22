@@ -242,6 +242,23 @@ function uniqueAvatar(room, requested) {
   return free ? { ...free } : requested;
 }
 
+function nameTaken(room, n) {
+  const low = n.toLowerCase();
+  for (const p of room.players.values()) if ((p.name || '').toLowerCase() === low) return true;
+  return false;
+}
+
+// Ensures each player in a room has a distinct name (auto-suffix duplicates).
+function uniqueName(room, name) {
+  const base = (name || 'Player').trim().slice(0, 18) || 'Player';
+  if (!nameTaken(room, base)) return base;
+  for (let i = 2; i <= 30; i++) {
+    const cand = `${base} (${i})`;
+    if (!nameTaken(room, cand)) return cand;
+  }
+  return `${base} ${Math.floor(Math.random() * 1000)}`;
+}
+
 // ── Team / Duel helpers ───────────────────────────────────────────────────────
 const DUEL_HP = 5000;
 
@@ -423,12 +440,15 @@ io.on('connection', socket => {
     if (room.players.size >= 8) return socket.emit('join-error', 'Room is full (8 players max).');
     const av = uniqueAvatar(room, avatar || defaultAvatar(name));
     const avatarReassigned = !!(avatar && avatar.id && av.id && av.id !== avatar.id);
+    const requestedName = (name || '?').trim();
+    const finalName = uniqueName(room, requestedName);
+    const nameReassigned = finalName !== requestedName;
     let joinTeam = null;
     if (room.teamMode) { const c = teamCounts(room); joinTeam = c.A <= c.B ? 'A' : 'B'; }
-    room.players.set(socket.id, { id:socket.id, name:(name||'?').trim(), avatar:av, score:0, team:joinTeam });
+    room.players.set(socket.id, { id:socket.id, name:finalName, avatar:av, score:0, team:joinTeam });
     socket.join(code);
-    socket.emit('room-joined', { code, room: publicRoom(room), yourAvatar: av, avatarReassigned });
-    socket.to(room.code).emit('player-joined', { name:(name||'?').trim(), avatar:av, room: publicRoom(room) });
+    socket.emit('room-joined', { code, room: publicRoom(room), yourAvatar: av, avatarReassigned, yourName: finalName, nameReassigned });
+    socket.to(room.code).emit('player-joined', { name:finalName, avatar:av, room: publicRoom(room) });
   });
 
   socket.on('change-mode', ({ code, mode }) => {
