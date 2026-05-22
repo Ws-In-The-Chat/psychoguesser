@@ -6,6 +6,8 @@
 <title>PsychoGuesser — AP Psychology Landmarks</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCfPkMHcwy7su1u30197WS5iozAEiXsCI0&language=en"></script>
+<script src="https://unpkg.com/leaflet.gridlayer.googlemutant@0.14.1/dist/Leaflet.GoogleMutant.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script src="avatars.js"></script>
 <style>
@@ -1580,14 +1582,25 @@ function copyLink() {
 // ═══════════════════════════════════════════════════════════
 // GAME MAP
 // ═══════════════════════════════════════════════════════════
+// Adds a Google Maps base layer (via GoogleMutant); falls back to Esri
+// English tiles if Google fails to load (bad key, network, etc.)
+function addBaseLayer(map) {
+  try {
+    if (window.google && window.google.maps && L.gridLayer && L.gridLayer.googleMutant) {
+      return L.gridLayer.googleMutant({ type: 'roadmap', maxZoom: 20 }).addTo(map);
+    }
+  } catch (e) { /* fall through to Esri */ }
+  return L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles © Esri', maxZoom: 19, keepBuffer: 2, crossOrigin: true
+  }).addTo(map);
+}
+
 function initGameMap() {
   gameMap = L.map('leaflet-map', {
     center: [20, 10], zoom: 2, minZoom: 1, maxZoom: 19,
     zoomControl: true, attributionControl: true, worldCopyJump: true,
   });
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-    attribution: 'Tiles © Esri', maxZoom: 19, keepBuffer: 2, crossOrigin: true
-  }).addTo(gameMap);
+  addBaseLayer(gameMap);
 
   gameMap.on('click', onMapClick);
   setTimeout(() => gameMap && gameMap.invalidateSize(), 100);
@@ -1670,12 +1683,9 @@ function stopTimer() { clearInterval(timerInterval); }
 // ═══════════════════════════════════════════════════════════
 function initResultsMap() {
   resultsMap = L.map('results-map', {
-    center: [20, 10], zoom: 2, zoomControl: true
+    center: [20, 10], zoom: 2, zoomControl: true, worldCopyJump: true
   });
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-    attribution: 'Tiles © Esri', maxZoom: 19,
-    keepBuffer: 2, crossOrigin: true
-  }).addTo(resultsMap);
+  addBaseLayer(resultsMap);
 }
 
 function renderStandings(results, room) {
@@ -2158,11 +2168,8 @@ function openCreatorOverlay() {
   document.getElementById('creator-overlay').classList.add('open');
   setTimeout(() => {
     if (!creatorMap) {
-      creatorMap = L.map('creator-map', { center: [20, 10], zoom: 2 });
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Tiles © Esri', maxZoom: 19,
-        keepBuffer: 2, crossOrigin: true
-      }).addTo(creatorMap);
+      creatorMap = L.map('creator-map', { center: [20, 10], zoom: 2, worldCopyJump: true });
+      addBaseLayer(creatorMap);
       creatorMap.on('click', onCreatorMapClick);
     }
     creatorMap.invalidateSize();
