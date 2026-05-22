@@ -261,6 +261,7 @@ function uniqueName(room, name) {
 
 // ── Team / Duel helpers ───────────────────────────────────────────────────────
 const DUEL_HP = 5000;
+const MAX_ROUND_DAMAGE = 2500; // a single round can take at most half a health bar
 
 function roundMultiplier(roundIndexZeroBased) {
   // Rounds 1-3 = x1, then +0.5 each round (r4=1.5, r5=2, r6=2.5 ...)
@@ -382,7 +383,7 @@ function finishRound(room) {
       // "miss" = 5000 - loserPoints. A far guess hurts a lot regardless of
       // the multiplier; the multiplier just scales the stakes each round.
       const loserPoints = Math.min(a.points, b.points);
-      damage = Math.round((5000 - loserPoints) * mult);
+      damage = Math.min(MAX_ROUND_DAMAGE, Math.round((5000 - loserPoints) * mult));
       room.teamHealth[loser] = Math.max(0, room.teamHealth[loser] - damage);
     }
     teamResult = {
