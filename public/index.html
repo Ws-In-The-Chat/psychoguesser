@@ -233,9 +233,11 @@ input[type=text]::placeholder { color: var(--muted); }
 /* Standings popup modal */
 #standings-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.82); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; z-index: 940; padding: 16px; }
 #standings-modal.open { display: flex; }
-.standings-modal-card { width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; animation: winner-pop 0.45s cubic-bezier(.2,.8,.2,1.25) both; }
+.standings-modal-card { width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; scrollbar-gutter: stable; animation: winner-pop 0.45s cubic-bezier(.2,.8,.2,1.25) both; }
 .standings-modal-card .standings-box { margin-bottom: 14px; }
 .standings-modal-card .standings-box h3 { font-size: 15px; }
+/* No hover-lift on the modal button — it caused a scrollbar/reflow flicker */
+.standings-modal-card .btn-primary:hover:not(:disabled) { transform: none; }
 
 /* ═══════════════════════════════════════════════
    LOBBY SCREEN
@@ -1184,8 +1186,17 @@ function showScreen(id) {
   setTimeout(() => {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
-    if (id === 'game-screen' && !gameMap) initGameMap();
-    if (id === 'results-screen' && !resultsMap) initResultsMap();
+    if (id === 'game-screen') {
+      if (!gameMap) initGameMap();
+      // Recalculate size now the container is visible (prevents broken/offset tiles)
+      requestAnimationFrame(() => { gameMap && gameMap.invalidateSize(); });
+      setTimeout(() => { gameMap && gameMap.invalidateSize(); }, 250);
+    }
+    if (id === 'results-screen') {
+      if (!resultsMap) initResultsMap();
+      requestAnimationFrame(() => { resultsMap && resultsMap.invalidateSize(); });
+      setTimeout(() => { resultsMap && resultsMap.invalidateSize(); }, 250);
+    }
     overlay.classList.remove('fading');
   }, 130);
 }
@@ -1572,14 +1583,14 @@ function copyLink() {
 function initGameMap() {
   gameMap = L.map('leaflet-map', {
     center: [20, 10], zoom: 2, minZoom: 1, maxZoom: 19,
-    zoomControl: true, attributionControl: true,
+    zoomControl: true, attributionControl: true, worldCopyJump: true,
   });
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-    attribution: 'Tiles © Esri', maxZoom: 19,
-    updateWhenZooming: false, keepBuffer: 4, crossOrigin: true
+    attribution: 'Tiles © Esri', maxZoom: 19, keepBuffer: 2, crossOrigin: true
   }).addTo(gameMap);
 
   gameMap.on('click', onMapClick);
+  setTimeout(() => gameMap && gameMap.invalidateSize(), 100);
 }
 
 function onMapClick(e) {
@@ -1663,7 +1674,7 @@ function initResultsMap() {
   });
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
     attribution: 'Tiles © Esri', maxZoom: 19,
-    updateWhenZooming: false, keepBuffer: 4, crossOrigin: true
+    keepBuffer: 2, crossOrigin: true
   }).addTo(resultsMap);
 }
 
@@ -2150,7 +2161,7 @@ function openCreatorOverlay() {
       creatorMap = L.map('creator-map', { center: [20, 10], zoom: 2 });
       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
         attribution: 'Tiles © Esri', maxZoom: 19,
-        updateWhenZooming: false, keepBuffer: 4, crossOrigin: true
+        keepBuffer: 2, crossOrigin: true
       }).addTo(creatorMap);
       creatorMap.on('click', onCreatorMapClick);
     }
