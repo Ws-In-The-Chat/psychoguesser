@@ -395,10 +395,11 @@ input[type=text]::placeholder { color: var(--muted); }
 #toast {
   position: fixed; top: 64px; right: 16px; z-index: 999;
   background: var(--green); color: white; padding: 10px 18px; border-radius: 12px;
-  font-size: 13px; font-weight: 700; transform: translateX(130%); transition: transform 0.35s;
+  font-size: 13px; font-weight: 700; transform: translateX(130%); transition: transform 0.35s, opacity 0.35s;
   max-width: 280px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  opacity: 0; visibility: hidden; pointer-events: none;
 }
-#toast.show { transform: translateX(0); }
+#toast.show { transform: translateX(0); opacity: 1; visibility: visible; pointer-events: auto; }
 #toast.warn { background: var(--red); }
 #toast.info { background: var(--accent); }
 
@@ -1044,50 +1045,59 @@ input[type=text]::placeholder { color: var(--muted); }
 // PSYCHOLOGISTS (32)
 // ═══════════════════════════════════════════════════════════
 const PSYCHOLOGISTS = [
-  { id:'freud',     name:'Sigmund Freud',       short:'SF', color:'#8b5cf6' },
-  { id:'jung',      name:'Carl Jung',            short:'CJ', color:'#06b6d4' },
-  { id:'skinner',   name:'B.F. Skinner',         short:'BF', color:'#3b82f6' },
-  { id:'pavlov',    name:'Ivan Pavlov',           short:'IP', color:'#22c55e' },
-  { id:'piaget',    name:'Jean Piaget',           short:'JP', color:'#f59e0b' },
-  { id:'maslow',    name:'Abraham Maslow',        short:'AM', color:'#f97316' },
-  { id:'james',     name:'William James',         short:'WJ', color:'#ec4899' },
-  { id:'wundt',     name:'Wilhelm Wundt',         short:'WW', color:'#14b8a6' },
-  { id:'milgram',   name:'Stanley Milgram',       short:'SM', color:'#ef4444' },
-  { id:'zimbardo',  name:'Philip Zimbardo',       short:'PZ', color:'#a855f7' },
-  { id:'bandura',   name:'Albert Bandura',        short:'AB', color:'#0ea5e9' },
-  { id:'rogers',    name:'Carl Rogers',           short:'CR', color:'#84cc16' },
-  { id:'erikson',   name:'Erik Erikson',          short:'EE', color:'#f43f5e' },
-  { id:'vygotsky',  name:'Lev Vygotsky',          short:'LV', color:'#6366f1' },
-  { id:'beck',      name:'Aaron Beck',            short:'AK', color:'#10b981' },
-  { id:'watson',    name:'John Watson',           short:'JW', color:'#fb923c' },
-  { id:'adler',     name:'Alfred Adler',          short:'AA', color:'#e879f9' },
-  { id:'afreud',    name:'Anna Freud',            short:'AN', color:'#38bdf8' },
-  { id:'allport',   name:'Gordon Allport',        short:'GA', color:'#4ade80' },
-  { id:'kohlberg',  name:'Lawrence Kohlberg',     short:'LK', color:'#fbbf24' },
-  { id:'ainsworth', name:'Mary Ainsworth',        short:'MA', color:'#f472b6' },
-  { id:'harlow',    name:'Harry Harlow',          short:'HH', color:'#818cf8' },
-  { id:'festinger', name:'Leon Festinger',        short:'LF', color:'#34d399' },
-  { id:'miller',    name:'George Miller',         short:'GM', color:'#fb7185' },
-  { id:'loftus',    name:'Elizabeth Loftus',      short:'EL', color:'#a78bfa' },
-  { id:'kahneman',  name:'Daniel Kahneman',       short:'DK', color:'#67e8f9' },
-  { id:'seligman',  name:'Martin Seligman',       short:'MG', color:'#86efac' },
-  { id:'ellis',     name:'Albert Ellis',          short:'AE', color:'#fde68a' },
-  { id:'frankl',    name:'Viktor Frankl',         short:'VF', color:'#c4b5fd' },
-  { id:'lewin',     name:'Kurt Lewin',            short:'KL', color:'#bae6fd' },
-  { id:'wechsler',  name:'David Wechsler',        short:'DW', color:'#bbf7d0' },
-  { id:'binet',     name:'Alfred Binet',          short:'BN', color:'#fed7aa' },
+  { id:'freud',     name:'Sigmund Freud',       short:'SF', color:'#8b5cf6', wiki:'Sigmund_Freud' },
+  { id:'jung',      name:'Carl Jung',            short:'CJ', color:'#06b6d4', wiki:'Carl_Jung' },
+  { id:'skinner',   name:'B.F. Skinner',         short:'BF', color:'#3b82f6', wiki:'B._F._Skinner' },
+  { id:'pavlov',    name:'Ivan Pavlov',           short:'IP', color:'#22c55e', wiki:'Ivan_Pavlov' },
+  { id:'piaget',    name:'Jean Piaget',           short:'JP', color:'#f59e0b', wiki:'Jean_Piaget' },
+  { id:'maslow',    name:'Abraham Maslow',        short:'AM', color:'#f97316', wiki:'Abraham_Maslow' },
+  { id:'james',     name:'William James',         short:'WJ', color:'#ec4899', wiki:'William_James' },
+  { id:'wundt',     name:'Wilhelm Wundt',         short:'WW', color:'#14b8a6', wiki:'Wilhelm_Wundt' },
+  { id:'milgram',   name:'Stanley Milgram',       short:'SM', color:'#ef4444', wiki:'Stanley_Milgram' },
+  { id:'zimbardo',  name:'Philip Zimbardo',       short:'PZ', color:'#a855f7', wiki:'Philip_Zimbardo' },
+  { id:'bandura',   name:'Albert Bandura',        short:'AB', color:'#0ea5e9', wiki:'Albert_Bandura' },
+  { id:'rogers',    name:'Carl Rogers',           short:'CR', color:'#84cc16', wiki:'Carl_Rogers' },
+  { id:'erikson',   name:'Erik Erikson',          short:'EE', color:'#f43f5e', wiki:'Erik_Erikson' },
+  { id:'vygotsky',  name:'Lev Vygotsky',          short:'LV', color:'#6366f1', wiki:'Lev_Vygotsky' },
+  { id:'beck',      name:'Aaron Beck',            short:'AK', color:'#10b981', wiki:'Aaron_T._Beck' },
+  { id:'watson',    name:'John Watson',           short:'JW', color:'#fb923c', wiki:'John_B._Watson' },
+  { id:'adler',     name:'Alfred Adler',          short:'AA', color:'#e879f9', wiki:'Alfred_Adler' },
+  { id:'afreud',    name:'Anna Freud',            short:'AN', color:'#38bdf8', wiki:'Anna_Freud' },
+  { id:'allport',   name:'Gordon Allport',        short:'GA', color:'#4ade80', wiki:'Gordon_Allport' },
+  { id:'kohlberg',  name:'Lawrence Kohlberg',     short:'LK', color:'#fbbf24', wiki:'Lawrence_Kohlberg' },
+  { id:'ainsworth', name:'Mary Ainsworth',        short:'MA', color:'#f472b6', wiki:'Mary_Ainsworth' },
+  { id:'harlow',    name:'Harry Harlow',          short:'HH', color:'#818cf8', wiki:'Harry_Harlow' },
+  { id:'festinger', name:'Leon Festinger',        short:'LF', color:'#34d399', wiki:'Leon_Festinger' },
+  { id:'miller',    name:'George Miller',         short:'GM', color:'#fb7185', wiki:'George_Armitage_Miller' },
+  { id:'loftus',    name:'Elizabeth Loftus',      short:'EL', color:'#a78bfa', wiki:'Elizabeth_Loftus' },
+  { id:'kahneman',  name:'Daniel Kahneman',       short:'DK', color:'#67e8f9', wiki:'Daniel_Kahneman' },
+  { id:'seligman',  name:'Martin Seligman',       short:'MG', color:'#86efac', wiki:'Martin_Seligman' },
+  { id:'ellis',     name:'Albert Ellis',          short:'AE', color:'#fde68a', wiki:'Albert_Ellis' },
+  { id:'frankl',    name:'Viktor Frankl',         short:'VF', color:'#c4b5fd', wiki:'Viktor_Frankl' },
+  { id:'lewin',     name:'Kurt Lewin',            short:'KL', color:'#bae6fd', wiki:'Kurt_Lewin' },
+  { id:'wechsler',  name:'David Wechsler',        short:'DW', color:'#bbf7d0', wiki:'David_Wechsler' },
+  { id:'binet',     name:'Alfred Binet',          short:'BN', color:'#fed7aa', wiki:'Alfred_Binet' },
 ];
+const PSYCH_BY_ID = Object.fromEntries(PSYCHOLOGISTS.map(p => [p.id, p]));
+const avatarImgCache = {};
 
 let selectedAvatar = PSYCHOLOGISTS[0];
 
 function buildAvatarPicker(gridId = 'avatar-grid-pick') {
   const grid = document.getElementById(gridId);
   if (!grid) return;
-  grid.innerHTML = PSYCHOLOGISTS.map((p, i) => `
-    <div class="av-opt${i===0?' selected':''}" data-id="${p.id}" onclick="selectAvatar('${p.id}','${gridId}')">
-      <div class="av-circle" style="background:${p.color}">${p.short}</div>
+  grid.innerHTML = PSYCHOLOGISTS.map((p) => {
+    const img = avatarImgCache[p.id];
+    const style = img
+      ? `background:${p.color} center/cover no-repeat;background-image:url('${img}')`
+      : `background:${p.color}`;
+    const label = img ? '' : p.short;
+    return `
+    <div class="av-opt${p.id===selectedAvatar.id?' selected':''}" data-id="${p.id}" onclick="selectAvatar('${p.id}','${gridId}')">
+      <div class="av-circle" data-imgid="${p.id}" style="${style}">${label}</div>
       <div class="av-name">${p.name.split(' ').slice(-1)[0]}</div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function selectAvatar(id, gridId = 'avatar-grid-pick') {
@@ -1098,7 +1108,23 @@ function selectAvatar(id, gridId = 'avatar-grid-pick') {
 
 function avatarCircleHTML(avatar, size=36) {
   if (!avatar) return `<div class="pav-circle" style="width:${size}px;height:${size}px;background:#8b5cf6">?</div>`;
+  const img = avatar.id ? avatarImgCache[avatar.id] : null;
+  if (img) return `<div class="pav-circle" data-imgid="${avatar.id}" style="width:${size}px;height:${size}px;background:${avatar.color} center/cover no-repeat;background-image:url('${img}')"></div>`;
   return `<div class="pav-circle" style="width:${size}px;height:${size}px;background:${avatar.color};font-size:${size*0.32}px">${avatar.short||avatar.initials||'?'}</div>`;
+}
+
+async function loadAvatarImages() {
+  await Promise.all(PSYCHOLOGISTS.map(async p => {
+    if (avatarImgCache[p.id] !== undefined || !p.wiki) return;
+    try {
+      const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(p.wiki)}`);
+      const d = await r.json();
+      avatarImgCache[p.id] = d.thumbnail?.source || null;
+    } catch { avatarImgCache[p.id] = null; }
+  }));
+  // Re-render any visible avatar pickers (preserving selection) and player avatars
+  ['avatar-grid-pick','daily-avatar-grid'].forEach(g => { if (document.getElementById(g)) buildAvatarPicker(g); });
+  if (roomState && roomState.players) renderPlayers(roomState.players);
 }
 
 const socket = io({ transports: ['polling', 'websocket'], reconnectionAttempts: 10 });
@@ -1252,17 +1278,35 @@ function closeJoinOverlay() {
   document.getElementById('join-error').style.display = 'none';
 }
 
+const BAD_WORDS_CLIENT = [
+  'nigger','nigga','negro','coon','chink','gook','spic','wetback','kike','beaner','wop','dago',
+  'paki','raghead','towelhead','sandnigger','jigaboo','faggot','fagot','fag','dyke','tranny','queer','homo',
+  'retard','retarded','spastic','cripple','midget',
+  'fuck','fuk','phuck','motherfucker','fucker','fucking','shit','bullshit','dipshit','bitch','bastard',
+  'asshole','dumbass','dickhead','douche','wanker','cunt','pussy','penis','vagina','dick','cock','cum',
+  'jizz','tits','boobs','dildo','whore','slut','porn','rape','rapist','molest','pedo','pedophile',
+  'nazi','hitler','heil','kkk','klan','lynch',
+];
+function isBadNameClient(name) {
+  const norm = String(name||'').toLowerCase()
+    .replace(/[4@]/g,'a').replace(/[1!|]/g,'i').replace(/3/g,'e')
+    .replace(/[5$]/g,'s').replace(/0/g,'o').replace(/7/g,'t').replace(/9/g,'g')
+    .replace(/[^a-z]/g,'');
+  if (!norm) return false;
+  return BAD_WORDS_CLIENT.some(w => norm.includes(w));
+}
+
 function submitCreate() {
   const name = document.getElementById('join-name').value.trim();
   if (!name) return showJoinError('Please enter your name.');
+  if (isBadNameClient(name)) return showJoinError('Please choose a different name — that one isn\'t allowed.');
   if (!socket.connected) return showJoinError('Not connected to server yet — wait a moment and try again.');
   const btn = document.getElementById('join-submit-btn');
   btn.disabled = true; btn.textContent = 'Creating...';
-  const timeout = setTimeout(() => {
-    btn.disabled = false; btn.textContent = 'Create Room →';
-    showJoinError('No response from server. Please try again.');
-  }, 6000);
+  const reset = () => { btn.disabled = false; btn.textContent = 'Create Room →'; };
+  const timeout = setTimeout(() => { reset(); showJoinError('No response from server. Please try again.'); }, 6000);
   socket.once('room-created', () => clearTimeout(timeout));
+  socket.once('name-error', (msg) => { clearTimeout(timeout); reset(); showJoinError(msg); });
   socket.emit('create-room', { name, mode: 'classic', avatar: selectedAvatar });
 }
 
@@ -1270,16 +1314,16 @@ function submitJoin() {
   const name = document.getElementById('join-name').value.trim();
   const code = document.getElementById('join-code').value.trim().toUpperCase();
   if (!name) return showJoinError('Please enter your name.');
+  if (isBadNameClient(name)) return showJoinError('Please choose a different name — that one isn\'t allowed.');
   if (!code || code.length < 3) return showJoinError('Please enter a valid room code.');
   if (!socket.connected) return showJoinError('Not connected to server yet — wait a moment and try again.');
   const btn = document.getElementById('join-submit-btn');
   btn.disabled = true; btn.textContent = 'Joining...';
-  const timeout = setTimeout(() => {
-    btn.disabled = false; btn.textContent = 'Join Room →';
-    showJoinError('No response from server. Check the room code and try again.');
-  }, 6000);
+  const reset = () => { btn.disabled = false; btn.textContent = 'Join Room →'; };
+  const timeout = setTimeout(() => { reset(); showJoinError('No response from server. Check the room code and try again.'); }, 6000);
   socket.once('room-joined', () => clearTimeout(timeout));
-  socket.once('join-error', () => { clearTimeout(timeout); btn.disabled = false; btn.textContent = 'Join Room →'; });
+  socket.once('join-error', () => { clearTimeout(timeout); reset(); });
+  socket.once('name-error', (msg) => { clearTimeout(timeout); reset(); showJoinError(msg); });
   socket.emit('join-room', { name, code, avatar: selectedAvatar });
 }
 
@@ -1303,6 +1347,7 @@ function startSolo() {
 
 // Kick off background image preload
 loadBgImages();
+loadAvatarImages();
 
 // URL ?join=CODE auto-fill
 (function checkURLJoin() {
@@ -2158,6 +2203,7 @@ async function fetchDailyLeaderboard() {
 function startDailyChallenge() {
   const name = document.getElementById('daily-name').value.trim();
   if (!name) { toast('Please enter your name.', 'warn'); return; }
+  if (isBadNameClient(name)) { toast('Please choose a different name — that one isn\'t allowed.', 'warn'); return; }
   if (!socket.connected) { toast('Not connected to server — wait a moment.', 'warn'); return; }
   localStorage.setItem('pg-name', name);
   closeDailyOverlay();
@@ -2246,6 +2292,7 @@ socket.on('room-joined', ({ code, room }) => {
 
 socket.on('join-error', (msg) => { showJoinError(msg); });
 socket.on('start-error', (msg) => { toast(msg, 'warn'); });
+socket.on('name-error', (msg) => { toast(msg, 'warn'); });
 
 socket.on('player-joined', ({ name, room }) => {
   roomState = room;

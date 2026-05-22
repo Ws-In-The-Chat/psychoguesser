@@ -125,6 +125,35 @@ app.post('/api/community/submit', (req, res) => {
   res.json({ ok: true, id: newLoc.id, count: locs.length });
 });
 
+// ── Username filter ───────────────────────────────────────────────────────────
+// Authoritative server-side profanity / slur filter for player names.
+const BAD_WORDS = [
+  // racial / ethnic / homophobic slurs
+  'nigger','nigga','nigga','negro','coon','chink','gook','spic','wetback','kike','beaner',
+  'wop','dago','paki','raghead','towelhead','sandnigger','jigaboo','porchmonkey','tarbaby',
+  'faggot','faggit','fagot','fag','dyke','tranny','queer','homo',
+  'retard','retarded','spastic','cripple','midget',
+  // strong profanity
+  'fuck','fuk','fuc','phuck','motherfucker','fucker','fucking','fuckface','clusterfuck',
+  'shit','shyt','bullshit','dipshit','shithead','bitch','biatch','bastard','asshole',
+  'dumbass','jackass','dickhead','douchebag','douche','wanker','bollocks',
+  // sexual
+  'cunt','pussy','penis','vagina','dick','cock','boner','cum','semen','jizz','blowjob',
+  'handjob','rimjob','tits','titty','boobs','nipple','dildo','horny','whore','slut',
+  'hooker','porn','pornhub','masturbate','orgasm','anal','rape','rapist','molest','pedophile','pedo',
+  // hate / nazi
+  'nazi','hitler','heil','kkk','klan','genocide','lynch',
+];
+
+function isBadName(name) {
+  const norm = String(name || '').toLowerCase()
+    .replace(/[4@]/g, 'a').replace(/[1!|]/g, 'i').replace(/3/g, 'e')
+    .replace(/[5$]/g, 's').replace(/0/g, 'o').replace(/7/g, 't').replace(/9/g, 'g')
+    .replace(/[^a-z]/g, '');
+  if (!norm) return false;
+  return BAD_WORDS.some(w => norm.includes(w));
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const rooms = new Map();
 
@@ -354,6 +383,7 @@ function finishGame(room) {
 io.on('connection', socket => {
   socket.on('create-room', ({ name, mode = 'classic', avatar, unit = 'all' }) => {
     if (!name?.trim()) return;
+    if (isBadName(name)) return socket.emit('name-error', 'Please choose a different name — that one isn\'t allowed.');
     const code = genCode();
     const safeUnit = UNITS[unit] ? unit : 'all';
     const room = {
@@ -371,6 +401,7 @@ io.on('connection', socket => {
   });
 
   socket.on('join-room', ({ code, name, avatar }) => {
+    if (isBadName(name)) return socket.emit('join-error', 'Please choose a different name — that one isn\'t allowed.');
     const room = rooms.get((code||'').toUpperCase().trim());
     if (!room) return socket.emit('join-error', 'Room not found. Check the code and try again.');
     if (room.state !== 'lobby') return socket.emit('join-error', 'This game is already in progress.');
@@ -509,6 +540,7 @@ io.on('connection', socket => {
 
   socket.on('start-daily', ({ name, avatar }) => {
     if (!name?.trim()) return;
+    if (isBadName(name)) return socket.emit('name-error', 'Please choose a different name — that one isn\'t allowed.');
     const code = genCode();
     const av = avatar || defaultAvatar(name);
     const room = {
