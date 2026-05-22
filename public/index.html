@@ -24,18 +24,18 @@
 </style>
 <style>
 :root {
-  --bg: #080614;
-  --surface: #0f0c1e;
-  --surface2: #171330;
-  --border: rgba(139,92,246,0.2);
-  --border2: rgba(255,255,255,0.07);
-  --accent: #8b5cf6;
-  --accent2: #06b6d4;
-  --gold: #fbbf24;
+  --bg: #0f0907;
+  --surface: #1a110d;
+  --surface2: #251710;
+  --border: rgba(255,122,74,0.28);
+  --border2: rgba(255,255,255,0.08);
+  --accent: #ff6b3d;
+  --accent2: #ff9d3c;
+  --gold: #ffb648;
   --green: #22c55e;
   --red: #ef4444;
-  --text: #e8e0ff;
-  --muted: #7060a0;
+  --text: #fdeee6;
+  --muted: #c2a294;
   --radius: 14px;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -97,8 +97,8 @@ input[type=text]::placeholder { color: var(--muted); }
    HOME SCREEN
 ═══════════════════════════════════════════════ */
 #home-screen {
-  background: radial-gradient(ellipse 80% 60% at 30% 20%, rgba(139,92,246,0.15) 0%, transparent 60%),
-              radial-gradient(ellipse 60% 50% at 80% 70%, rgba(6,182,212,0.1) 0%, transparent 50%),
+  background: radial-gradient(ellipse 80% 60% at 30% 15%, rgba(255,107,61,0.18) 0%, transparent 60%),
+              radial-gradient(ellipse 60% 50% at 80% 80%, rgba(255,157,60,0.12) 0%, transparent 50%),
               var(--bg);
   align-items: center; justify-content: center;
 }
@@ -109,23 +109,26 @@ input[type=text]::placeholder { color: var(--muted); }
 }
 @keyframes float { 0%{transform:translateY(100vh) translateX(0);opacity:0} 10%{opacity:1} 90%{opacity:1} 100%{transform:translateY(-100px) translateX(calc(var(--drift,0px)));opacity:0} }
 
-.home-inner { position: relative; z-index: 1; text-align: center; max-width: 520px; width: 90%; }
+.home-inner { position: relative; z-index: 2; text-align: center; max-width: 540px; width: 90%; }
+#home-particles { z-index: 1; }
 .home-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(139,92,246,0.12); border: 1px solid rgba(139,92,246,0.3); border-radius: 20px; padding: 5px 14px; font-size: 12px; font-weight: 700; color: #c4b5fd; margin-bottom: 20px; }
 .home-title {
-  font-size: clamp(42px,7vw,72px); font-weight: 900; line-height: 1.18;
-  padding: 0.08em 0.42em; margin-bottom: 12px; overflow: visible;
-  background: linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #34d399 100%);
+  font-size: clamp(46px,8vw,80px); font-weight: 900; line-height: 1.16;
+  padding: 0.08em 0.42em; margin-bottom: 10px; overflow: visible;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #ffd9a0 0%, #ff9d3c 35%, #ff6b3d 70%, #ff4d6d 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   background-clip: text;
+  filter: drop-shadow(0 4px 18px rgba(255,107,61,0.35));
 }
 .home-sub { font-size: 16px; color: var(--muted); margin-bottom: 40px; line-height: 1.5; }
 .home-actions { display: flex; flex-direction: column; gap: 12px; margin-bottom: 36px; }
 .home-btn {
-  display: flex; align-items: center; gap: 14px; padding: 18px 24px; border-radius: 14px;
-  cursor: pointer; border: 1px solid var(--border2); transition: all 0.22s; text-align: left;
-  background: rgba(255,255,255,0.03);
+  display: flex; align-items: center; gap: 14px; padding: 18px 24px; border-radius: 16px;
+  cursor: pointer; border: 1px solid rgba(255,255,255,0.12); transition: all 0.22s; text-align: left;
+  background: rgba(26,17,13,0.55); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
 }
-.home-btn:hover { border-color: var(--accent); background: rgba(139,92,246,0.08); transform: translateY(-2px); box-shadow: 0 12px 32px rgba(139,92,246,0.15); }
+.home-btn:hover { border-color: var(--accent); background: rgba(40,22,15,0.7); transform: translateY(-2px); box-shadow: 0 12px 32px rgba(255,107,61,0.2); }
 .home-btn .hb-icon { font-size: 28px; flex-shrink: 0; }
 .home-btn .hb-text .hb-title { font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 2px; }
 .home-btn .hb-text .hb-sub { font-size: 12px; color: var(--muted); }
@@ -524,33 +527,47 @@ input[type=text]::placeholder { color: var(--muted); }
    VISUAL UPGRADES — HOME SCREEN
 ═══════════════════════════════════════════════ */
 
-/* Cycling background image layers */
+/* Cycling background image layers — now clearly visible photos */
 .home-bg-layer {
   position: absolute; inset: 0; z-index: 0;
   background-size: cover; background-position: center;
-  opacity: 0; transition: opacity 2.5s ease;
-  filter: blur(14px) brightness(0.18) saturate(1.3);
-  transform: scale(1.1); will-change: opacity;
+  opacity: 0; transition: opacity 2.2s ease;
+  filter: brightness(0.78) saturate(1.08) contrast(1.02);
+  transform: scale(1.06); will-change: opacity;
+  animation: kenburns 22s ease-in-out infinite alternate;
 }
 .home-bg-layer.active { opacity: 1; }
+@keyframes kenburns { from { transform: scale(1.06); } to { transform: scale(1.16); } }
 
-/* Animated gradient title */
+/* Readable scrim over the photos (warm coral tint + darkening behind content) */
+.home-scrim {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 42%, rgba(15,9,7,0.82) 0%, rgba(15,9,7,0.45) 55%, transparent 80%),
+    linear-gradient(to bottom, rgba(15,9,7,0.55) 0%, rgba(15,9,7,0.25) 35%, rgba(15,9,7,0.7) 100%),
+    radial-gradient(ellipse 90% 60% at 50% 0%, rgba(255,107,61,0.16) 0%, transparent 55%);
+}
+
+/* Animated gradient title (warm coral flow) */
 .home-title {
-  background: linear-gradient(135deg, #a78bfa, #38bdf8, #34d399, #f472b6, #a78bfa);
+  background: linear-gradient(135deg, #ffe0b0, #ff9d3c, #ff6b3d, #ff4d6d, #ff9d3c, #ffe0b0);
   background-size: 300% auto;
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  animation: title-flow 7s linear infinite;
+  animation: title-flow 8s linear infinite;
 }
 @keyframes title-flow {
   0% { background-position: 0% center; }
   100% { background-position: 300% center; }
 }
 
-/* Pulsing badge */
-.home-badge { animation: badge-pulse 3s ease-in-out infinite; }
+/* Pulsing badge (coral) */
+.home-badge {
+  background: rgba(255,107,61,0.14); border-color: rgba(255,107,61,0.4); color: #ffc6a3;
+  animation: badge-pulse 3s ease-in-out infinite;
+}
 @keyframes badge-pulse {
-  0%,100% { box-shadow: 0 0 0 0 rgba(139,92,246,0); }
-  50% { box-shadow: 0 0 18px 3px rgba(139,92,246,0.35); }
+  0%,100% { box-shadow: 0 0 0 0 rgba(255,107,61,0); }
+  50% { box-shadow: 0 0 18px 3px rgba(255,107,61,0.4); }
 }
 
 /* Staggered entrance */
@@ -568,7 +585,7 @@ input[type=text]::placeholder { color: var(--muted); }
 .home-btn { position: relative; overflow: hidden; transition: all 0.28s cubic-bezier(0.34,1.56,0.64,1); }
 .home-btn::before {
   content: ''; position: absolute; inset: 0; border-radius: inherit;
-  background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(6,182,212,0.07));
+  background: linear-gradient(135deg, rgba(255,107,61,0.14), rgba(255,157,60,0.08));
   opacity: 0; transition: opacity 0.3s;
 }
 .home-btn:hover::before { opacity: 1; }
@@ -582,13 +599,13 @@ input[type=text]::placeholder { color: var(--muted); }
 @keyframes shimmer-sweep { to { left: 140%; } }
 .home-btn:hover {
   transform: translateY(-3px) !important;
-  border-color: rgba(139,92,246,0.55) !important;
-  box-shadow: 0 0 0 1px rgba(139,92,246,0.2), 0 20px 50px rgba(0,0,0,0.55), 0 0 50px rgba(139,92,246,0.1) !important;
+  border-color: rgba(255,107,61,0.6) !important;
+  box-shadow: 0 0 0 1px rgba(255,107,61,0.25), 0 20px 50px rgba(0,0,0,0.55), 0 0 50px rgba(255,107,61,0.14) !important;
 }
 .home-btn .hb-icon { transition: transform 0.32s cubic-bezier(0.34,1.56,0.64,1); display: inline-block; }
 .home-btn:hover .hb-icon { transform: scale(1.22) rotate(-8deg); }
 .home-btn .hb-text .hb-title { transition: color 0.2s; }
-.home-btn:hover .hb-text .hb-title { color: #ddd4ff; }
+.home-btn:hover .hb-text .hb-title { color: #ffd9c2; }
 
 /* btn-primary shimmer + hover */
 .btn-primary { position: relative; overflow: hidden; transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1) !important; }
@@ -658,6 +675,7 @@ input[type=text]::placeholder { color: var(--muted); }
 <div class="screen active" id="home-screen">
   <div id="home-bg-a" class="home-bg-layer"></div>
   <div id="home-bg-b" class="home-bg-layer"></div>
+  <div class="home-scrim"></div>
   <div id="home-particles"></div>
   <div class="home-inner">
     <div class="home-badge">🧠 AP Psychology Edition</div>
@@ -697,7 +715,7 @@ input[type=text]::placeholder { color: var(--muted); }
         </div>
         <span style="color:var(--gold);margin-left:auto">→</span>
       </div>
-      <div class="home-btn" onclick="openCreatorOverlay()" style="border-color:rgba(6,182,212,0.3)">
+      <div class="home-btn" onclick="openCreatorOverlay()" style="border-color:rgba(255,157,60,0.35)">
         <div class="hb-icon">🗺️</div>
         <div class="hb-text">
           <div class="hb-title">Create a Location</div>
