@@ -21,13 +21,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-// Diagnostic: confirms whether a persistent volume is in use for accounts.
-app.get('/api/health', (req, res) => {
-  let writable = false;
-  try { fs.accessSync(DATA_DIR, fs.constants.W_OK); writable = true; } catch {}
-  res.json({ ok: true, dataDir: DATA_DIR, persistent: DATA_DIR !== __dirname, writable });
-});
-
 // ── Daily Challenge ────────────────────────────────────────────────────────────
 const SCORES_FILE = path.join(__dirname, 'daily-scores.json');
 
