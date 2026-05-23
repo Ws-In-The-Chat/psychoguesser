@@ -231,6 +231,7 @@ function isBadName(name) {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const rooms = new Map();
+const socketAccounts = new Map(); // socket.id -> account email (for crediting stats)
 
 function genCode() {
   const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -481,8 +482,28 @@ function finishRound(room) {
   });
 }
 
+function creditAccounts(room) {
+  // Credit games played + XP to any logged-in players when a game ends.
+  const updates = [];
+  for (const p of room.players.values()) {
+    const email = socketAccounts.get(p.id);
+    if (email) updates.push([email, p.score || 0]);
+  }
+  if (!updates.length) return;
+  try {
+    const d = readAccounts();
+    let changed = false;
+    for (const [email, score] of updates) {
+      const u = d.users[email];
+      if (u) { u.games = (u.games || 0) + 1; u.xp = (u.xp || 0) + score; changed = true; }
+    }
+    if (changed) writeAccounts(d);
+  } catch {}
+}
+
 function finishGame(room) {
   room.state = 'finished';
+  creditAccounts(room);
   if (room.teamMode) {
     const { A, B } = room.teamHealth;
     const winningTeam = A === B ? null : (A > B ? 'A' : 'B');
@@ -495,6 +516,15 @@ function finishGame(room) {
 
 // ── Socket.io ────────────────────────────────────────────────────────────────
 io.on('connection', socket => {
+  // Associate this socket with a logged-in account (for crediting games/XP).
+  socket.on('auth', ({ token }) => {
+    if (!token) { socketAccounts.delete(socket.id); return; }
+    const d = readAccounts();
+    const email = d.tokens[token];
+    if (email && d.users[email]) socketAccounts.set(socket.id, email);
+    else socketAccounts.delete(socket.id);
+  });
+
   socket.on('create-room', ({ name, mode = 'classic', avatar, unit = 'all' }) => {
     if (!name?.trim()) return;
     if (isBadName(name)) return socket.emit('name-error', 'Please choose a different name, that one isn\'t allowed.');
@@ -675,6 +705,7 @@ io.on('connection', socket => {
   });
 
   socket.on('disconnect', () => {
+    socketAccounts.delete(socket.id);
     for (const [code, room] of rooms) {
       if (!room.players.has(socket.id)) continue;
       room.players.delete(socket.id);

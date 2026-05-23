@@ -1930,6 +1930,7 @@ function showGameOver(data) {
   roomState = room;
   closeStandingsModal();
   showScreen('gameover-screen');
+  if (currentUser) setTimeout(refreshUser, 800); // pick up updated games/XP
 
   // Team battle game over
   if (data.teamMode) {
@@ -2095,14 +2096,23 @@ async function submitAuth() {
   if (!ok) return showAccountError(data.error || 'Something went wrong.');
   localStorage.setItem('pg-token', data.token);
   currentUser = data.user;
+  socket.emit('auth', { token: data.token });
   updateAccountUI();
   closeAccount();
   toast(`Welcome, ${currentUser.username}!`, 'info');
 }
 
+async function refreshUser() {
+  const token = localStorage.getItem('pg-token');
+  if (!token) return;
+  const { ok, data } = await authFetch('/api/auth/me', { token });
+  if (ok && data.user) { currentUser = data.user; updateAccountUI(); }
+}
+
 async function logout() {
   const token = localStorage.getItem('pg-token');
   if (token) authFetch('/api/auth/logout', { token });
+  socket.emit('auth', { token: null });
   localStorage.removeItem('pg-token');
   currentUser = null;
   updateAccountUI();
@@ -2118,10 +2128,12 @@ async function restoreSession() {
   const token = localStorage.getItem('pg-token');
   if (!token) return;
   const { ok, data } = await authFetch('/api/auth/me', { token });
-  if (ok && data.user) { currentUser = data.user; updateAccountUI(); }
+  if (ok && data.user) { currentUser = data.user; updateAccountUI(); socket.emit('auth', { token }); }
   else localStorage.removeItem('pg-token');
 }
 restoreSession();
+// Re-send auth on (re)connect so the server can credit games to the account
+socket.on('connect', () => { const t = localStorage.getItem('pg-token'); if (t) socket.emit('auth', { token: t }); });
 
 // ═══════════════════════════════════════════════════════════
 // WIKIPEDIA IMAGE FETCH
