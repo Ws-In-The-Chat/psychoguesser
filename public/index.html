@@ -306,6 +306,8 @@ input[type=text]::placeholder { color: var(--muted); }
   height: 52px; flex-shrink: 0; display: flex; align-items: center; gap: 12px;
   padding: 0 16px; background: var(--surface); border-bottom: 1px solid var(--border2);
 }
+.topbar-home { background: rgba(255,107,61,0.14); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 5px 9px; font-size: 14px; cursor: pointer; flex-shrink: 0; transition: background 0.16s; }
+.topbar-home:hover { background: rgba(255,107,61,0.28); }
 .topbar-brand { font-size: 13px; font-weight: 800; color: var(--accent); margin-right: 6px; }
 .topbar-round { font-size: 12px; color: var(--muted); font-weight: 600; }
 .topbar-scores { display: flex; gap: 8px; flex: 1; justify-content: center; overflow: hidden; }
@@ -739,7 +741,11 @@ input[type=text]::placeholder { color: var(--muted); }
   <div class="lobby-layout">
     <!-- Sidebar -->
     <div class="lobby-sidebar">
-      <div class="lobby-logo">🧠 PsychoGuesser</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <div class="lobby-logo" style="margin-bottom:0">🧠 PsychoGuesser</div>
+        <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px" onclick="confirmHome()">🏠 Home</button>
+      </div>
+      <div style="height:24px"></div>
 
       <div class="room-code-box">
         <div class="room-code-label">Room Code</div>
@@ -871,6 +877,7 @@ input[type=text]::placeholder { color: var(--muted); }
 ══════════════════════════════════════════════ -->
 <div class="screen" id="game-screen">
   <div class="game-topbar">
+    <button class="topbar-home" onclick="confirmHome()" title="Back to home">🏠</button>
     <span class="topbar-brand">🧠 PsychoGuesser</span>
     <span class="topbar-round" id="topbar-round">Round 1/5</span>
     <div class="topbar-scores" id="topbar-scores"></div>
@@ -1995,6 +2002,10 @@ function goHome() {
   isSolo = false; isHost = false; isDaily = false;
   stopTimer();
   showScreen('home-screen');
+}
+
+function confirmHome() {
+  if (confirm('Leave and return to the home screen?')) goHome();
 }
 
 // ═══════════════════════════════════════════════════════════
