@@ -175,10 +175,12 @@ function haversineKm(lat1, lon1, lat2, lon2) {
 }
 
 function calcScore(km, elapsedSec, timeLimit) {
-  // Balanced exponential decay — being in the right city/region scores well.
+  // Balanced exponential decay. Being in the right city/region scores well.
   // ~50km: 4400, ~150km: 3500, ~300km: 2400, ~600km: 1100, ~1200km: 250
   const distScore = Math.round(5000 * Math.exp(-km / 450));
-  const timeBonus = timeLimit < 999 ? Math.round(Math.max(0, timeLimit - elapsedSec) * 5) : 0;
+  // Speed bonus scales with accuracy, so a far/wrong guess earns ~0 even if fast.
+  const accuracy = distScore / 5000;
+  const timeBonus = timeLimit < 999 ? Math.round(accuracy * Math.max(0, timeLimit - elapsedSec) * 5) : 0;
   return Math.min(5000, distScore + timeBonus);
 }
 
@@ -421,7 +423,7 @@ function finishGame(room) {
 io.on('connection', socket => {
   socket.on('create-room', ({ name, mode = 'classic', avatar, unit = 'all' }) => {
     if (!name?.trim()) return;
-    if (isBadName(name)) return socket.emit('name-error', 'Please choose a different name — that one isn\'t allowed.');
+    if (isBadName(name)) return socket.emit('name-error', 'Please choose a different name, that one isn\'t allowed.');
     const code = genCode();
     const safeUnit = UNITS[unit] ? unit : 'all';
     const room = {
@@ -439,7 +441,7 @@ io.on('connection', socket => {
   });
 
   socket.on('join-room', ({ code, name, avatar }) => {
-    if (isBadName(name)) return socket.emit('join-error', 'Please choose a different name — that one isn\'t allowed.');
+    if (isBadName(name)) return socket.emit('join-error', 'Please choose a different name, that one isn\'t allowed.');
     const room = rooms.get((code||'').toUpperCase().trim());
     if (!room) return socket.emit('join-error', 'Room not found. Check the code and try again.');
     if (room.state !== 'lobby') return socket.emit('join-error', 'This game is already in progress.');
@@ -582,7 +584,7 @@ io.on('connection', socket => {
 
   socket.on('start-daily', ({ name, avatar }) => {
     if (!name?.trim()) return;
-    if (isBadName(name)) return socket.emit('name-error', 'Please choose a different name — that one isn\'t allowed.');
+    if (isBadName(name)) return socket.emit('name-error', 'Please choose a different name, that one isn\'t allowed.');
     const code = genCode();
     const av = avatar || defaultAvatar(name);
     const room = {
