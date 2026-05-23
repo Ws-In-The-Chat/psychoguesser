@@ -100,44 +100,47 @@ input[type=text]::placeholder { color: var(--muted); }
 /* ═══════════════════════════════════════════════
    HOME SCREEN
 ═══════════════════════════════════════════════ */
-#home-screen {
-  background: radial-gradient(ellipse 80% 60% at 30% 15%, rgba(255,107,61,0.18) 0%, transparent 60%),
-              radial-gradient(ellipse 60% 50% at 80% 80%, rgba(255,157,60,0.12) 0%, transparent 50%),
-              var(--bg);
-  align-items: center; justify-content: center;
-}
-#home-particles { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+#home-screen { background: var(--bg); align-items: stretch; justify-content: flex-start; }
+#home-particles { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 1; }
 .particle {
   position: absolute; width: 2px; height: 2px; background: white; border-radius: 50%;
   animation: float linear infinite;
 }
 @keyframes float { 0%{transform:translateY(100vh) translateX(0);opacity:0} 10%{opacity:1} 90%{opacity:1} 100%{transform:translateY(-100px) translateX(calc(var(--drift,0px)));opacity:0} }
 
-.home-inner { position: relative; z-index: 2; text-align: center; max-width: 620px; width: 92%; }
-#home-particles { z-index: 1; }
-.home-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,107,61,0.12); border: 1px solid rgba(255,107,61,0.3); border-radius: 20px; padding: 5px 14px; font-size: 12px; font-weight: 700; color: #ffd0b0; margin-bottom: 20px; }
+/* Left menu panel (WorldGuessr-style) */
+.home-menu {
+  position: relative; z-index: 2; height: 100%;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 0 clamp(24px, 4vw, 56px); width: min(620px, 94%); gap: 4px;
+}
+.home-badge { display: inline-flex; align-self: flex-start; align-items: center; gap: 6px; background: rgba(255,107,61,0.14); border: 1px solid rgba(255,107,61,0.4); border-radius: 20px; padding: 5px 14px; font-size: 12px; font-weight: 700; color: #ffc6a3; margin-bottom: 14px; }
 .home-title {
-  font-size: clamp(34px,6.5vw,62px); font-weight: 900; line-height: 1.18;
-  padding: 0.06em 0.16em; margin-bottom: 10px; overflow: visible;
-  letter-spacing: -0.02em; white-space: nowrap;
+  font-size: clamp(30px,4.2vw,52px); font-weight: 900; line-height: 1.08;
+  margin-bottom: 26px; letter-spacing: -0.03em; padding-bottom: 0.08em; white-space: nowrap;
   background: linear-gradient(135deg, #ffd9a0 0%, #ff9d3c 35%, #ff6b3d 70%, #ff4d6d 100%);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   filter: drop-shadow(0 4px 18px rgba(255,107,61,0.35));
 }
-.home-sub { font-size: 16px; color: var(--muted); margin-bottom: 40px; line-height: 1.5; }
-.home-actions { display: flex; flex-direction: column; gap: 12px; margin-bottom: 36px; }
-.home-btn {
-  display: flex; align-items: center; gap: 14px; padding: 18px 24px; border-radius: 16px;
-  cursor: pointer; border: 1px solid rgba(255,255,255,0.12); transition: all 0.22s; text-align: left;
-  background: rgba(26,17,13,0.55); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+.home-nav { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.nav-link {
+  font-size: clamp(22px, 2.6vw, 30px); font-weight: 800; color: #fff;
+  cursor: pointer; padding: 4px 0; transition: color 0.15s, transform 0.15s; line-height: 1.25;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.6);
 }
-.home-btn:hover { border-color: var(--accent); background: rgba(40,22,15,0.7); transform: translateY(-2px); box-shadow: 0 12px 32px rgba(255,107,61,0.2); }
-.home-btn .hb-icon { font-size: 28px; flex-shrink: 0; }
-.home-btn .hb-text .hb-title { font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 2px; }
-.home-btn .hb-text .hb-sub { font-size: 12px; color: var(--muted); }
-.home-features { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-.feat { background: rgba(255,255,255,0.04); border: 1px solid var(--border2); padding: 6px 12px; border-radius: 20px; font-size: 11px; color: var(--muted); }
+.nav-link:hover { color: var(--accent); transform: translateX(6px); }
+.nav-link.nav-gold:hover { color: var(--gold); }
+.nav-div { height: 1px; width: 240px; max-width: 100%; background: rgba(255,255,255,0.22); margin: 12px 0; }
+.home-credits { margin-top: 26px; font-size: 12px; color: rgba(255,255,255,0.6); letter-spacing: 0.04em; }
+
+/* Account area (top-right) */
+.home-account { position: absolute; top: 18px; right: 20px; z-index: 3; }
+.account-btn {
+  background: rgba(26,17,13,0.6); backdrop-filter: blur(10px); border: 1px solid var(--border);
+  color: var(--text); border-radius: 12px; padding: 9px 16px; font-size: 14px; font-weight: 800;
+  cursor: pointer; font-family: inherit; transition: all 0.16s;
+}
+.account-btn:hover { background: rgba(255,107,61,0.22); border-color: var(--accent); }
 
 /* Join overlay */
 #join-overlay {
@@ -546,12 +549,13 @@ input[type=text]::placeholder { color: var(--muted); }
 @keyframes kenburns { from { transform: scale(1.06); } to { transform: scale(1.16); } }
 
 /* Readable scrim over the photos (warm coral tint + darkening behind content) */
+/* Left side gradient panel so the menu is readable; photo shows on the right */
 .home-scrim {
   position: absolute; inset: 0; z-index: 1; pointer-events: none;
   background:
-    radial-gradient(ellipse 70% 55% at 50% 42%, rgba(15,9,7,0.82) 0%, rgba(15,9,7,0.45) 55%, transparent 80%),
-    linear-gradient(to bottom, rgba(15,9,7,0.55) 0%, rgba(15,9,7,0.25) 35%, rgba(15,9,7,0.7) 100%),
-    radial-gradient(ellipse 90% 60% at 50% 0%, rgba(255,107,61,0.16) 0%, transparent 55%);
+    linear-gradient(105deg, rgba(20,9,5,0.96) 0%, rgba(20,9,5,0.9) 26%, rgba(15,9,7,0.55) 48%, transparent 72%),
+    linear-gradient(to right, rgba(255,107,61,0.22) 0%, transparent 38%),
+    linear-gradient(to top, rgba(15,9,7,0.5) 0%, transparent 35%);
 }
 
 /* Animated gradient title (warm coral flow) */
@@ -581,23 +585,10 @@ input[type=text]::placeholder { color: var(--muted); }
   from { opacity: 0; transform: translateY(28px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.home-inner .home-badge    { animation: slide-in-up 0.6s 0.05s ease both, badge-pulse 3s 0.6s ease-in-out infinite; }
-.home-inner .home-title    { animation: slide-in-up 0.65s 0.18s ease both, title-flow 7s 0.8s linear infinite; }
-.home-inner .home-sub      { animation: slide-in-up 0.6s 0.32s ease both; }
-.home-inner .home-actions  { animation: slide-in-up 0.6s 0.46s ease both; }
-.home-inner .home-features { animation: slide-in-up 0.6s 0.60s ease both; }
-
-/* Home buttons, clean, subtle hover */
-.home-btn { transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease; }
-.home-btn:hover {
-  transform: translateY(-2px);
-  border-color: rgba(255,107,61,0.6);
-  background: rgba(40,22,15,0.72);
-  box-shadow: 0 10px 28px rgba(0,0,0,0.45);
-}
-.home-btn .hb-icon { display: inline-block; }
-.home-btn .hb-text .hb-title { transition: color 0.16s; }
-.home-btn:hover .hb-text .hb-title { color: #ffd9c2; }
+.home-menu .home-badge { animation: slide-in-up 0.6s 0.05s ease both, badge-pulse 3s 0.6s ease-in-out infinite; }
+.home-menu .home-title { animation: slide-in-up 0.6s 0.16s ease both, title-flow 8s 0.8s linear infinite; }
+.home-menu .home-nav   { animation: slide-in-up 0.6s 0.30s ease both; }
+.home-menu .home-credits { animation: slide-in-up 0.6s 0.44s ease both; }
 
 /* Primary button, clean hover */
 .btn-primary { transition: transform 0.14s ease, box-shadow 0.14s ease, background 0.14s ease !important; }
@@ -652,54 +643,26 @@ input[type=text]::placeholder { color: var(--muted); }
   <div id="home-bg-b" class="home-bg-layer"></div>
   <div class="home-scrim"></div>
   <div id="home-particles"></div>
-  <div class="home-inner">
+
+  <!-- Account (top-right) -->
+  <div class="home-account">
+    <button class="account-btn" id="account-btn" onclick="openAccount()">👤 Log in / Sign up</button>
+  </div>
+
+  <!-- Left menu panel -->
+  <div class="home-menu">
     <div class="home-badge">🧠 AP Psychology Edition</div>
     <h1 class="home-title">PsychoGuesser</h1>
-    <p class="home-sub">By Alec Hughes &amp; Peter Schneider</p>
-
-    <div class="home-actions">
-      <div class="home-btn" onclick="openCreateFlow()">
-        <div class="hb-icon">🏠</div>
-        <div class="hb-text">
-          <div class="hb-title">Create a Room</div>
-          <div class="hb-sub">Host a game, share a code or link with friends</div>
-        </div>
-        <span style="color:var(--muted);margin-left:auto">→</span>
-      </div>
-      <div class="home-btn" onclick="openJoinOverlay()">
-        <div class="hb-icon">🔗</div>
-        <div class="hb-text">
-          <div class="hb-title">Join a Room</div>
-          <div class="hb-sub">Enter a 5-letter code to join a friend's game</div>
-        </div>
-        <span style="color:var(--muted);margin-left:auto">→</span>
-      </div>
-      <div class="home-btn" onclick="startSolo()">
-        <div class="hb-icon">🎮</div>
-        <div class="hb-text">
-          <div class="hb-title">Solo Practice</div>
-          <div class="hb-sub">Practice alone, no time pressure, full clues</div>
-        </div>
-        <span style="color:var(--muted);margin-left:auto">→</span>
-      </div>
-      <div class="home-btn" onclick="openDailyOverlay()" style="border-color:rgba(251,191,36,0.3)">
-        <div class="hb-icon">📅</div>
-        <div class="hb-text">
-          <div class="hb-title">Daily Challenge</div>
-          <div class="hb-sub">Same 5 locations for everyone today, compete on the global leaderboard</div>
-        </div>
-        <span style="color:var(--gold);margin-left:auto">→</span>
-      </div>
-      <div class="home-btn" onclick="openCreatorOverlay()" style="border-color:rgba(255,157,60,0.35)">
-        <div class="hb-icon">🗺️</div>
-        <div class="hb-text">
-          <div class="hb-title">Create a Location</div>
-          <div class="hb-sub">Pin a psychology landmark on the map and add it to the community pool</div>
-        </div>
-        <span style="color:var(--accent2);margin-left:auto">→</span>
-      </div>
-    </div>
-
+    <nav class="home-nav">
+      <a class="nav-link" onclick="startSolo()">Singleplayer</a>
+      <div class="nav-div"></div>
+      <a class="nav-link" onclick="openCreateFlow()">Create a Room</a>
+      <a class="nav-link" onclick="openJoinOverlay()">Join a Room</a>
+      <div class="nav-div"></div>
+      <a class="nav-link nav-gold" onclick="openDailyOverlay()">Daily Challenge</a>
+      <a class="nav-link" onclick="openCreatorOverlay()">Create a Location</a>
+    </nav>
+    <div class="home-credits">By Alec Hughes &amp; Peter Schneider</div>
   </div>
 </div>
 
@@ -2006,6 +1969,10 @@ function goHome() {
 
 function confirmHome() {
   if (confirm('Leave and return to the home screen?')) goHome();
+}
+
+function openAccount() {
+  toast('Accounts are coming soon!', 'info');
 }
 
 // ═══════════════════════════════════════════════════════════
