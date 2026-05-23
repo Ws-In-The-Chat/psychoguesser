@@ -1229,6 +1229,12 @@ async function loadBgImages() {
   }));
   bgImages = results.filter(Boolean);
   if (!bgImages.length) return;
+  // Shuffle so every visit starts on a random image and cycles in a random order
+  for (let i = bgImages.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [bgImages[i], bgImages[j]] = [bgImages[j], bgImages[i]];
+  }
+  bgIdx = 0;
   const a = document.getElementById('home-bg-a');
   a.style.backgroundImage = `url(${bgImages[0]})`;
   a.classList.add('active');
