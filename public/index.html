@@ -131,7 +131,7 @@ input[type=text]::placeholder { color: var(--muted); }
 .nav-link:hover { color: var(--accent); transform: translateX(6px); }
 .nav-link.nav-gold:hover { color: var(--gold); }
 .nav-div { height: 1px; width: 240px; max-width: 100%; background: rgba(255,255,255,0.22); margin: 12px 0; }
-.home-credits { margin-top: 26px; font-size: 12px; color: rgba(255,255,255,0.6); letter-spacing: 0.04em; }
+.home-credits { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 3; font-size: 12px; color: rgba(255,255,255,0.7); letter-spacing: 0.04em; text-shadow: 0 1px 6px rgba(0,0,0,0.7); white-space: nowrap; }
 
 /* Account area (top-right) */
 .home-account { position: absolute; top: 18px; right: 20px; z-index: 3; }
@@ -661,8 +661,8 @@ input[type=text]::placeholder { color: var(--muted); }
       <a class="nav-link nav-gold" onclick="openDailyOverlay()">Daily Challenge</a>
       <a class="nav-link" onclick="openCreatorOverlay()">Create a Location</a>
     </nav>
-    <div class="home-credits">By Alec Hughes &amp; Peter Schneider</div>
   </div>
+  <div class="home-credits">By Alec Hughes &amp; Peter Schneider</div>
 </div>
 
 <!-- Standings popup (after each round) -->
