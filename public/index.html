@@ -75,13 +75,13 @@ h1, h2, h3 { font-weight: 800; letter-spacing: -0.02em; }
 .btn-icon:hover { background: rgba(255,255,255,0.12); color: var(--text); }
 
 /* ── Input ── */
-input[type=text] {
+input[type=text], input[type=email], input[type=password] {
   background: rgba(255,255,255,0.05); border: 1.5px solid var(--border2); border-radius: 10px;
   color: var(--text); font-size: 15px; padding: 11px 14px; width: 100%; font-family: inherit;
   transition: border-color 0.18s; outline: none;
 }
-input[type=text]:focus { border-color: var(--accent); background: rgba(255,107,61,0.06); }
-input[type=text]::placeholder { color: var(--muted); }
+input[type=text]:focus, input[type=email]:focus, input[type=password]:focus { border-color: var(--accent); background: rgba(255,107,61,0.06); }
+input[type=text]::placeholder, input[type=email]::placeholder, input[type=password]::placeholder { color: var(--muted); }
 
 /* ── Card ── */
 .card { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius); padding: 20px; }
@@ -141,6 +141,17 @@ input[type=text]::placeholder { color: var(--muted); }
   cursor: pointer; font-family: inherit; transition: all 0.16s;
 }
 .account-btn:hover { background: rgba(255,107,61,0.22); border-color: var(--accent); }
+
+/* Account modal */
+#account-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+  display: none; align-items: center; justify-content: center; z-index: 950; padding: 16px;
+}
+#account-overlay.open { display: flex; }
+.auth-tabs { display: flex; gap: 6px; background: rgba(255,255,255,0.05); border-radius: 10px; padding: 4px; margin-bottom: 16px; }
+.auth-tab { flex: 1; padding: 9px; border: none; border-radius: 8px; background: transparent; color: var(--muted); font-weight: 800; font-size: 13px; cursor: pointer; font-family: inherit; transition: all 0.16s; }
+.auth-tab.active { background: var(--accent); color: #fff; }
+.profile-stats { display: flex; flex-direction: column; gap: 8px; font-size: 14px; color: var(--text); margin-top: 8px; }
 
 /* Join overlay */
 #join-overlay {
@@ -663,6 +674,45 @@ input[type=text]::placeholder { color: var(--muted); }
     </nav>
   </div>
   <div class="home-credits">By Alec Hughes &amp; Peter Schneider</div>
+</div>
+
+<!-- Account / login modal -->
+<div id="account-overlay" onclick="if(event.target===this)closeAccount()">
+  <div class="join-box" id="account-box" style="max-width:380px">
+    <button class="btn-icon" onclick="closeAccount()" style="float:right;margin-bottom:8px">✕</button>
+    <!-- Logged-out: login/signup form -->
+    <div id="account-auth">
+      <h2 id="account-title">Welcome back</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Your username is what other players see in games.</p>
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="setAuthTab('login')">Log in</button>
+        <button class="auth-tab" id="tab-signup" onclick="setAuthTab('signup')">Sign up</button>
+      </div>
+      <div id="account-error" class="join-error"></div>
+      <div class="form-row" id="acc-username-row" style="display:none">
+        <label>Username</label>
+        <input type="text" id="acc-username" maxlength="18" placeholder="Pick a username" autocomplete="off"/>
+      </div>
+      <div class="form-row">
+        <label>Email</label>
+        <input type="email" id="acc-email" placeholder="you@example.com" autocomplete="email"/>
+      </div>
+      <div class="form-row">
+        <label>Password</label>
+        <input type="password" id="acc-password" placeholder="At least 6 characters" autocomplete="current-password"/>
+      </div>
+      <button class="btn btn-primary btn-lg" style="width:100%" id="acc-submit" onclick="submitAuth()">Log in</button>
+    </div>
+    <!-- Logged-in: profile -->
+    <div id="account-profile" style="display:none">
+      <h2 id="profile-name">Username</h2>
+      <div class="profile-stats">
+        <div>🎮 <span id="profile-games">0</span> games played</div>
+        <div>📅 Joined <span id="profile-joined">today</span></div>
+      </div>
+      <button class="btn btn-secondary btn-lg" style="width:100%;margin-top:16px" onclick="logout()">Log out</button>
+    </div>
+  </div>
 </div>
 
 <!-- Standings popup (after each round) -->
@@ -1248,26 +1298,42 @@ async function loadBgImages() {
 // ═══════════════════════════════════════════════════════════
 // HOME FLOW
 // ═══════════════════════════════════════════════════════════
+// When logged in, lock the name field to the account username.
+function applyAccountName(inputId) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  if (currentUser) {
+    input.value = currentUser.username;
+    input.readOnly = true;
+    input.style.opacity = '0.7';
+  } else {
+    input.readOnly = false;
+    input.style.opacity = '';
+  }
+}
+
 function openCreateFlow() {
   document.getElementById('join-title').textContent = 'Create a Room';
-  document.getElementById('join-sub').textContent = 'Pick your psychologist and set your name.';
+  document.getElementById('join-sub').textContent = currentUser ? 'Pick your psychologist.' : 'Pick your psychologist and set your name.';
   document.getElementById('join-code-row').style.display = 'none';
   document.getElementById('join-submit-btn').textContent = 'Create Room →';
   document.getElementById('join-submit-btn').onclick = submitCreate;
   document.getElementById('join-overlay').classList.add('open');
   buildAvatarPicker();
-  setTimeout(() => document.getElementById('join-name').focus(), 100);
+  applyAccountName('join-name');
+  if (!currentUser) setTimeout(() => document.getElementById('join-name').focus(), 100);
 }
 
 function openJoinOverlay() {
   document.getElementById('join-title').textContent = 'Join a Room';
-  document.getElementById('join-sub').textContent = 'Pick your psychologist, enter your name and the room code.';
+  document.getElementById('join-sub').textContent = currentUser ? 'Pick your psychologist and enter the room code.' : 'Pick your psychologist, enter your name and the room code.';
   document.getElementById('join-code-row').style.display = 'block';
   document.getElementById('join-submit-btn').textContent = 'Join Room →';
   document.getElementById('join-submit-btn').onclick = submitJoin;
   document.getElementById('join-overlay').classList.add('open');
   buildAvatarPicker();
-  setTimeout(() => document.getElementById('join-name').focus(), 100);
+  applyAccountName('join-name');
+  setTimeout(() => document.getElementById(currentUser ? 'join-code' : 'join-name').focus(), 100);
 }
 
 function closeJoinOverlay() {
@@ -1970,9 +2036,92 @@ function confirmHome() {
   if (confirm('Leave and return to the home screen?')) goHome();
 }
 
-function openAccount() {
-  toast('Accounts are coming soon!', 'info');
+// ═══════════════════════════════════════════════════════════
+// ACCOUNTS / AUTH
+// ═══════════════════════════════════════════════════════════
+let currentUser = null;
+let authMode = 'login';
+
+async function authFetch(path, body) {
+  const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const d = await r.json().catch(() => ({}));
+  return { ok: r.ok, data: d };
 }
+
+function openAccount() {
+  const overlay = document.getElementById('account-overlay');
+  document.getElementById('account-error').style.display = 'none';
+  if (currentUser) {
+    document.getElementById('account-auth').style.display = 'none';
+    document.getElementById('account-profile').style.display = '';
+    document.getElementById('profile-name').textContent = currentUser.username;
+    document.getElementById('profile-games').textContent = currentUser.games ?? 0;
+    document.getElementById('profile-joined').textContent = currentUser.createdAt ? new Date(currentUser.createdAt).toLocaleDateString() : 'recently';
+  } else {
+    document.getElementById('account-auth').style.display = '';
+    document.getElementById('account-profile').style.display = 'none';
+    setAuthTab('login');
+  }
+  overlay.classList.add('open');
+}
+function closeAccount() { document.getElementById('account-overlay').classList.remove('open'); }
+
+function setAuthTab(mode) {
+  authMode = mode;
+  document.getElementById('tab-login').classList.toggle('active', mode === 'login');
+  document.getElementById('tab-signup').classList.toggle('active', mode === 'signup');
+  document.getElementById('acc-username-row').style.display = mode === 'signup' ? '' : 'none';
+  document.getElementById('account-title').textContent = mode === 'signup' ? 'Create your account' : 'Welcome back';
+  document.getElementById('acc-submit').textContent = mode === 'signup' ? 'Sign up' : 'Log in';
+  document.getElementById('account-error').style.display = 'none';
+}
+
+function showAccountError(msg) {
+  const el = document.getElementById('account-error');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+async function submitAuth() {
+  const email = document.getElementById('acc-email').value.trim();
+  const password = document.getElementById('acc-password').value;
+  const username = document.getElementById('acc-username').value.trim();
+  if (!email || !password) return showAccountError('Please fill in all fields.');
+  if (authMode === 'signup' && isBadNameClient(username)) return showAccountError('That username isn\'t allowed. Please pick another.');
+  const btn = document.getElementById('acc-submit');
+  btn.disabled = true; btn.textContent = '...';
+  const path = authMode === 'signup' ? '/api/auth/register' : '/api/auth/login';
+  const { ok, data } = await authFetch(path, authMode === 'signup' ? { email, username, password } : { email, password });
+  btn.disabled = false; btn.textContent = authMode === 'signup' ? 'Sign up' : 'Log in';
+  if (!ok) return showAccountError(data.error || 'Something went wrong.');
+  localStorage.setItem('pg-token', data.token);
+  currentUser = data.user;
+  updateAccountUI();
+  closeAccount();
+  toast(`Welcome, ${currentUser.username}!`, 'info');
+}
+
+async function logout() {
+  const token = localStorage.getItem('pg-token');
+  if (token) authFetch('/api/auth/logout', { token });
+  localStorage.removeItem('pg-token');
+  currentUser = null;
+  updateAccountUI();
+  closeAccount();
+}
+
+function updateAccountUI() {
+  const btn = document.getElementById('account-btn');
+  if (btn) btn.textContent = currentUser ? `👤 ${currentUser.username}` : '👤 Log in / Sign up';
+}
+
+async function restoreSession() {
+  const token = localStorage.getItem('pg-token');
+  if (!token) return;
+  const { ok, data } = await authFetch('/api/auth/me', { token });
+  if (ok && data.user) { currentUser = data.user; updateAccountUI(); }
+  else localStorage.removeItem('pg-token');
+}
+restoreSession();
 
 // ═══════════════════════════════════════════════════════════
 // WIKIPEDIA IMAGE FETCH
@@ -2251,6 +2400,7 @@ function openDailyOverlay() {
 
   const savedName = localStorage.getItem('pg-name');
   if (savedName) document.getElementById('daily-name').value = savedName;
+  applyAccountName('daily-name');
 
   const todayStr = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
   const prevScore = localStorage.getItem(`pg-daily-${todayStr}`);

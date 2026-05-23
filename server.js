@@ -4,8 +4,14 @@ const { Server } = require('socket.io');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const crypto = require('crypto');
 const { LOCATIONS_ALL, UNITS } = require('./locations');
 const { PSYCHOLOGISTS } = require('./public/avatars.js');
+
+// Persistent data dir (set DATA_DIR to a Railway volume mount so accounts
+// survive redeploys; falls back to the project folder for local dev).
+const DATA_DIR = process.env.DATA_DIR || __dirname;
+try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch {}
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -124,6 +130,74 @@ app.post('/api/community/submit', (req, res) => {
   locs.push(newLoc);
   writeCommunityLocations(locs);
   res.json({ ok: true, id: newLoc.id, count: locs.length });
+});
+
+// ── Accounts / Auth ────────────────────────────────────────────────────────────
+const ACCOUNTS_FILE = path.join(DATA_DIR, 'accounts.json');
+
+function readAccounts() {
+  try { return JSON.parse(fs.readFileSync(ACCOUNTS_FILE, 'utf8')); }
+  catch { return { users: {}, usernames: {}, tokens: {} }; }
+}
+function writeAccounts(d) { fs.writeFileSync(ACCOUNTS_FILE, JSON.stringify(d, null, 2)); }
+
+function hashPw(pw, salt) { return crypto.scryptSync(pw, salt, 64).toString('hex'); }
+function pwMatches(pw, salt, hash) {
+  const a = Buffer.from(hashPw(pw, salt), 'hex');
+  const b = Buffer.from(hash, 'hex');
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+function newToken() { return crypto.randomBytes(24).toString('hex'); }
+function validEmail(e) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e); }
+function publicUser(u) { return { username: u.username, email: u.email, games: u.games || 0, xp: u.xp || 0, createdAt: u.createdAt }; }
+
+app.post('/api/auth/register', (req, res) => {
+  let { email, username, password } = req.body || {};
+  email = (email || '').trim().toLowerCase();
+  username = (username || '').trim();
+  password = password || '';
+  if (!validEmail(email)) return res.status(400).json({ error: 'Please enter a valid email address.' });
+  if (username.length < 3 || username.length > 18) return res.status(400).json({ error: 'Username must be 3-18 characters.' });
+  if (isBadName(username)) return res.status(400).json({ error: 'That username isn\'t allowed. Please pick another.' });
+  if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+  const d = readAccounts();
+  if (d.users[email]) return res.status(400).json({ error: 'An account with that email already exists.' });
+  if (d.usernames[username.toLowerCase()]) return res.status(400).json({ error: 'That username is already taken.' });
+  const salt = crypto.randomBytes(16).toString('hex');
+  d.users[email] = { email, username, salt, hash: hashPw(password, salt), createdAt: Date.now(), games: 0, xp: 0 };
+  d.usernames[username.toLowerCase()] = email;
+  const token = newToken();
+  d.tokens[token] = email;
+  writeAccounts(d);
+  res.json({ ok: true, token, user: publicUser(d.users[email]) });
+});
+
+app.post('/api/auth/login', (req, res) => {
+  let { email, password } = req.body || {};
+  email = (email || '').trim().toLowerCase();
+  password = password || '';
+  const d = readAccounts();
+  const u = d.users[email];
+  if (!u || !pwMatches(password, u.salt, u.hash)) return res.status(400).json({ error: 'Incorrect email or password.' });
+  const token = newToken();
+  d.tokens[token] = email;
+  writeAccounts(d);
+  res.json({ ok: true, token, user: publicUser(u) });
+});
+
+app.post('/api/auth/me', (req, res) => {
+  const { token } = req.body || {};
+  const d = readAccounts();
+  const email = d.tokens[token];
+  if (!email || !d.users[email]) return res.status(401).json({ error: 'Not logged in.' });
+  res.json({ ok: true, user: publicUser(d.users[email]) });
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  const { token } = req.body || {};
+  const d = readAccounts();
+  if (token && d.tokens[token]) { delete d.tokens[token]; writeAccounts(d); }
+  res.json({ ok: true });
 });
 
 // ── Username filter ───────────────────────────────────────────────────────────
