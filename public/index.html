@@ -1722,7 +1722,7 @@ function renderStandings(results, room) {
   const standings = [...results].sort((a, b) => b.totalScore - a.totalScore);
   standings.forEach((r, i) => { r._rank = i + 1; });
 
-  const isFirstRound = (room.round || 1) <= 1;
+  const isFirstRound = Object.keys(prevStandings).length === 0;
   const moveBadge = (r) => {
     if (isFirstRound) return '<span class="move same">-</span>';
     const prev = prevStandings[r.id];
@@ -1741,7 +1741,7 @@ function renderStandings(results, room) {
 
   slot.innerHTML = `
     <div class="standings-box">
-      <h3>🏆 Standings, Round ${room.round}/${room.totalRounds}</h3>
+      <h3>🏆 Standings, Round ${room.round + 1}/${room.totalRounds}</h3>
       ${rows.map((r, i) => {
         if (r._gap) return '<div class="stand-row gap" style="justify-content:center;animation-delay:0s">···</div>';
         const medal = r._rank === 1 ? '🥇' : r._rank === 2 ? '🥈' : r._rank === 3 ? '🥉' : r._rank;
@@ -1781,9 +1781,9 @@ function showResults(data) {
   // Switch screen
   showScreen('results-screen');
 
-  // Title
-  document.getElementById('results-title').textContent = `Round ${room.round} Results`;
-  document.getElementById('results-round-badge').textContent = `${room.round}/${room.totalRounds}`;
+  // Title (room.round is 0-indexed on the server)
+  document.getElementById('results-title').textContent = `Round ${room.round + 1} Results`;
+  document.getElementById('results-round-badge').textContent = `${room.round + 1}/${room.totalRounds}`;
 
   // Buttons
   const nextBtn = document.getElementById('next-round-btn');

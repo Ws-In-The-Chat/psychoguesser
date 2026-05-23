@@ -22,7 +22,7 @@ app.use(express.json());
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 // ── Daily Challenge ────────────────────────────────────────────────────────────
-const SCORES_FILE = path.join(__dirname, 'daily-scores.json');
+const SCORES_FILE = path.join(DATA_DIR, 'daily-scores.json');
 
 function readScores() {
   try { return JSON.parse(fs.readFileSync(SCORES_FILE, 'utf8')); }
@@ -93,7 +93,7 @@ app.post('/api/daily/submit', (req, res) => {
 
 
 // ── Community Maps ─────────────────────────────────────────────────────────────
-const COMMUNITY_FILE = path.join(__dirname, 'community-locations.json');
+const COMMUNITY_FILE = path.join(DATA_DIR, 'community-locations.json');
 
 function readCommunityLocations() {
   try { return JSON.parse(fs.readFileSync(COMMUNITY_FILE, 'utf8')); }
