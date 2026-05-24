@@ -143,11 +143,11 @@ input[type=text]::placeholder, input[type=email]::placeholder, input[type=passwo
 .account-btn:hover { background: rgba(244,106,76,0.22); border-color: var(--accent); }
 
 /* Account modal */
-#account-overlay {
+#account-overlay, #leaderboard-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
   display: none; align-items: center; justify-content: center; z-index: 950; padding: 16px;
 }
-#account-overlay.open { display: flex; }
+#account-overlay.open, #leaderboard-overlay.open { display: flex; }
 .auth-tabs { display: flex; gap: 6px; background: rgba(255,255,255,0.05); border-radius: 10px; padding: 4px; margin-bottom: 16px; }
 .auth-tab { flex: 1; padding: 9px; border: none; border-radius: 8px; background: transparent; color: var(--muted); font-weight: 800; font-size: 13px; cursor: pointer; font-family: inherit; transition: all 0.16s; }
 .auth-tab.active { background: var(--accent); color: #fff; }
@@ -354,6 +354,11 @@ input[type=text]::placeholder, input[type=email]::placeholder, input[type=passwo
 .loc-panel-body { padding: 18px; flex: 1; }
 .clues-header { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
 .clue-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+#hint-area { margin-top: 14px; }
+.hint-btn { background: rgba(31,182,166,0.14); border: 1px solid rgba(31,182,166,0.45); color: #6ee7d7; border-radius: 10px; padding: 9px 14px; font-size: 12px; font-weight: 800; cursor: pointer; font-family: inherit; transition: all 0.16s; }
+.hint-btn:hover:not(:disabled) { background: rgba(31,182,166,0.26); }
+.hint-btn:disabled { opacity: 0.5; cursor: default; }
+.hint-reveal { margin-top: 10px; font-size: 13px; font-weight: 700; color: #6ee7d7; background: rgba(31,182,166,0.1); border: 1px solid rgba(31,182,166,0.3); border-radius: 8px; padding: 8px 12px; }
 .clue-item { display: flex; gap: 10px; animation: fade-in 0.4s ease; }
 @keyframes fade-in { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
 .clue-num { width: 20px; height: 20px; border-radius: 50%; background: rgba(244,106,76,0.25); border: 1px solid rgba(244,106,76,0.4); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; color: #f6b38e; flex-shrink: 0; margin-top: 1px; }
@@ -435,6 +440,13 @@ input[type=text]::placeholder, input[type=email]::placeholder, input[type=passwo
 .winner-score { font-size: 15px; color: var(--gold); font-weight: 700; }
 
 .final-leaderboard { background: var(--surface); border: 1px solid var(--border2); border-radius: 16px; padding: 20px; margin-bottom: 24px; text-align: left; }
+.review-item { padding: 10px 0; border-bottom: 1px solid var(--border2); }
+.review-item:last-child { border-bottom: none; }
+.review-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.review-name { font-size: 14px; font-weight: 800; color: var(--accent); }
+.review-pts { font-size: 13px; font-weight: 800; color: var(--gold); white-space: nowrap; }
+.review-city { font-size: 11px; color: var(--muted); margin: 1px 0 4px; }
+.review-fact { font-size: 12px; color: var(--text); line-height: 1.45; opacity: 0.85; }
 .final-leaderboard h3 { font-size: 14px; color: var(--muted); margin-bottom: 14px; }
 .fl-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border2); }
 .fl-row:last-child { border-bottom: none; }
@@ -632,8 +644,17 @@ input[type=text]::placeholder, input[type=email]::placeholder, input[type=passwo
   .mode-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 500px) {
-  .home-title { font-size: 38px; }
+  .home-title { font-size: 36px; white-space: normal; margin-bottom: 18px; }
+  .home-menu { padding-top: 34px; width: 96%; }
+  .nav-link { font-size: 21px; }
+  .nav-div { margin: 8px 0; }
   .gameover-inner { max-width: 95%; }
+  .topic-opt { font-size: 12px; padding: 7px 10px; }
+  .home-account { top: 12px; right: 12px; }
+}
+@media (max-height: 640px) and (max-width: 500px) {
+  .home-menu { padding-top: 20px; justify-content: center; }
+  .home-badge { margin-bottom: 8px; }
 }
 </style>
 </head>
@@ -671,6 +692,8 @@ input[type=text]::placeholder, input[type=email]::placeholder, input[type=passwo
       <div class="nav-div"></div>
       <a class="nav-link nav-gold" onclick="openDailyOverlay()">Daily Challenge</a>
       <a class="nav-link" onclick="openCreatorOverlay()">Create a Location</a>
+      <div class="nav-div"></div>
+      <a class="nav-link" onclick="openLeaderboard()">Leaderboard</a>
     </nav>
   </div>
   <div class="home-credits">By Alec Hughes &amp; Peter Schneider</div>
@@ -708,10 +731,26 @@ input[type=text]::placeholder, input[type=email]::placeholder, input[type=passwo
       <h2 id="profile-name">Username</h2>
       <div class="profile-stats">
         <div>🎮 <span id="profile-games">0</span> games played</div>
+        <div>⭐ <span id="profile-xp">0</span> XP</div>
+        <div>🔥 <span id="profile-streak">0</span>-day daily streak</div>
         <div>📅 Joined <span id="profile-joined">today</span></div>
       </div>
-      <button class="btn btn-secondary btn-lg" style="width:100%;margin-top:16px" onclick="logout()">Log out</button>
+      <div id="profile-units" style="margin-top:14px"></div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn btn-secondary" id="sound-toggle" style="flex:1" onclick="toggleSound()">🔊 Sound: On</button>
+        <button class="btn btn-secondary" style="flex:1" onclick="logout()">Log out</button>
+      </div>
     </div>
+  </div>
+</div>
+
+<!-- Global leaderboard -->
+<div id="leaderboard-overlay" onclick="if(event.target===this)closeLeaderboard()">
+  <div class="join-box" style="max-width:420px;max-height:88vh;overflow-y:auto">
+    <button class="btn-icon" onclick="closeLeaderboard()" style="float:right;margin-bottom:8px">✕</button>
+    <h2>🏆 Top Players</h2>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:14px">Ranked by total XP earned across all games.</p>
+    <div id="leaderboard-list"></div>
   </div>
 </div>
 
@@ -921,6 +960,10 @@ input[type=text]::placeholder, input[type=email]::placeholder, input[type=passwo
       <div class="loc-panel-body">
         <div class="clues-header">💡 Clues <span id="mode-badge" class="badge badge-purple" style="margin-left:4px"></span></div>
         <ul class="clue-list" id="clue-list"></ul>
+        <div id="hint-area">
+          <button class="hint-btn" id="hint-btn" onclick="useHint()">🧭 Reveal region (-50% this round)</button>
+          <div class="hint-reveal" id="hint-reveal" style="display:none"></div>
+        </div>
       </div>
 
       <div class="guess-count-bar" id="guess-count-bar"></div>
@@ -985,6 +1028,14 @@ input[type=text]::placeholder, input[type=email]::placeholder, input[type=passwo
     <div class="final-leaderboard">
       <h3>Final Leaderboard</h3>
       <div id="final-list"></div>
+    </div>
+
+    <div class="final-leaderboard" id="review-wrap" style="display:none">
+      <h3>📖 Review — where they actually were</h3>
+      <div id="review-list"></div>
+      <div id="daily-share-wrap" style="display:none;margin-top:14px">
+        <button class="btn btn-secondary" style="width:100%" onclick="shareDaily()">📋 Copy shareable result</button>
+      </div>
     </div>
 
     <div id="daily-submit-wrap" style="display:none">
@@ -1179,6 +1230,9 @@ let isHost = false;
 let isSolo = false;
 let isDaily = false;
 let prevStandings = {}; // playerId -> rank in the previous round, for movement arrows
+let currentHintRegion = null;
+let hintUsedThisRound = false;
+let gameReview = []; // {name, city, fact, km, pts} per round, for end-of-game recap
 
 let dailyUUID = localStorage.getItem('pg-uuid');
 if (!dailyUUID) {
@@ -1652,9 +1706,22 @@ function onMapClick(e) {
   document.getElementById('map-hint').style.display = 'none';
 }
 
+function useHint() {
+  if (hintUsedThisRound || guessSubmitted || !currentHintRegion) return;
+  hintUsedThisRound = true;
+  socket.emit('use-hint', { code: roomCode });
+  const reveal = document.getElementById('hint-reveal');
+  reveal.textContent = `🧭 Region: ${currentHintRegion}`;
+  reveal.style.display = '';
+  const btn = document.getElementById('hint-btn');
+  btn.disabled = true; btn.textContent = '🧭 Hint used (-50% this round)';
+  playSound('hint');
+}
+
 function submitGuess() {
   if (!myGuess || guessSubmitted) return;
   guessSubmitted = true;
+  playSound('submit');
   document.getElementById('submit-btn').disabled = true;
   document.getElementById('submit-btn').textContent = '⏳ Locked in!';
   document.getElementById('guess-status').textContent = '🔒 Guess locked, waiting for others...';
@@ -1777,6 +1844,11 @@ function showResults(data) {
 
   const { results, answer, isLast, room } = data;
   roomState = room;
+
+  // Record this round for the end-of-game review
+  const mine = results.find(r => r.id === myId);
+  gameReview.push({ name: answer.name, city: answer.city, fact: answer.fact, km: mine ? mine.km : null, pts: mine ? mine.roundPts : 0 });
+  playSound('reveal');
 
   // Switch screen
   showScreen('results-screen');
@@ -1908,6 +1980,132 @@ function triggerGameOverAnim() {
   sc.classList.add('show-anim');
 }
 
+// ── End-of-game review ───────────────────────────────────────────────────────
+function renderReview() {
+  const wrap = document.getElementById('review-wrap');
+  const list = document.getElementById('review-list');
+  if (!wrap || !list || !gameReview.length) { if (wrap) wrap.style.display = 'none'; return; }
+  list.innerHTML = gameReview.map((r, i) => `
+    <div class="review-item">
+      <div class="review-top">
+        <span class="review-name">${i + 1}. ${esc(r.name)}</span>
+        <span class="review-pts">${r.km != null ? r.km.toLocaleString() + ' km · ' : ''}+${(r.pts || 0).toLocaleString()}</span>
+      </div>
+      <div class="review-city">${esc(r.city)}</div>
+      <div class="review-fact">${esc(r.fact)}</div>
+    </div>`).join('');
+  wrap.style.display = '';
+  document.getElementById('daily-share-wrap').style.display = isDaily ? '' : 'none';
+}
+
+// ── Shareable daily result ───────────────────────────────────────────────────
+function shareDaily() {
+  const total = gameReview.reduce((s, r) => s + (r.pts || 0), 0);
+  const squares = gameReview.map(r => {
+    const p = r.pts || 0;
+    return p >= 4000 ? '🟩' : p >= 2000 ? '🟨' : p >= 500 ? '🟧' : '⬛';
+  }).join('');
+  const d = new Date();
+  const txt = `🧠 PsychoGuesser Daily ${d.toLocaleDateString('en-US',{month:'short',day:'numeric'})}\n${squares}\n${total.toLocaleString()} pts · psychoguesser.com`;
+  navigator.clipboard.writeText(txt).then(
+    () => toast('Result copied — paste it anywhere!', 'info'),
+    () => toast('Could not copy.', 'warn')
+  );
+}
+
+// ── Sound effects (Web Audio, no files) ──────────────────────────────────────
+let audioCtx = null;
+function soundOn() { return localStorage.getItem('pg-sound') !== 'off'; }
+function playSound(type) {
+  if (!soundOn()) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const now = audioCtx.currentTime;
+    const tone = (freq, start, dur, vol = 0.07) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = 'sine'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0, now + start);
+      g.gain.linearRampToValueAtTime(vol, now + start + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + start + dur);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(now + start); o.stop(now + start + dur + 0.02);
+    };
+    if (type === 'submit') tone(520, 0, 0.12);
+    else if (type === 'reveal') { tone(660, 0, 0.12); tone(880, 0.08, 0.14); }
+    else if (type === 'hint') tone(440, 0, 0.1);
+    else if (type === 'win') { tone(523, 0, 0.15); tone(659, 0.12, 0.15); tone(784, 0.24, 0.22); }
+  } catch {}
+}
+function toggleSound() {
+  localStorage.setItem('pg-sound', soundOn() ? 'off' : 'on');
+  updateSoundUI();
+}
+function updateSoundUI() {
+  const b = document.getElementById('sound-toggle');
+  if (b) b.textContent = soundOn() ? '🔊 Sound: On' : '🔇 Sound: Off';
+}
+
+// ── Daily streak (localStorage) ──────────────────────────────────────────────
+function getStreak() { return parseInt(localStorage.getItem('pg-streak') || '0', 10) || 0; }
+function updateDailyStreak() {
+  const today = new Date().toISOString().slice(0, 10);
+  const last = localStorage.getItem('pg-streak-date');
+  if (last === today) return getStreak(); // already counted today
+  let streak = getStreak();
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  streak = (last === yesterday) ? streak + 1 : 1;
+  localStorage.setItem('pg-streak', String(streak));
+  localStorage.setItem('pg-streak-date', today);
+  return streak;
+}
+
+// ── Per-unit stats breakdown for profile ─────────────────────────────────────
+const UNIT_LABELS = {
+  u1: '🔬 Unit 1 · Biological',
+  u2: '💭 Unit 2 · Cognition',
+  u3: '🧩 Unit 3 · Development & Learning',
+  u4: '👥 Unit 4 · Social & Personality',
+  u5: '⚕️ Unit 5 · Mental & Physical Health',
+  all: '🧠 All Topics',
+  daily: '📅 Daily Challenge',
+  community: '🌍 Community',
+};
+function renderProfileUnits() {
+  const el = document.getElementById('profile-units');
+  if (!el) return;
+  const xp = (currentUser && currentUser.unitXp) || {};
+  const games = (currentUser && currentUser.unitGames) || {};
+  const keys = Object.keys(UNIT_LABELS).filter(k => (xp[k] || games[k]));
+  if (!keys.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px">Play a few games to build your stats.</div>'; return; }
+  keys.sort((a, b) => (xp[b] || 0) - (xp[a] || 0));
+  el.innerHTML = '<div style="font-weight:800;margin-bottom:8px;color:var(--text)">Stats by topic</div>' +
+    keys.map(k => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border2);font-size:13px">
+      <span style="color:var(--muted)">${UNIT_LABELS[k]}</span>
+      <span style="color:var(--text);font-weight:700">${(xp[k] || 0).toLocaleString()} XP · ${games[k] || 0}g</span>
+    </div>`).join('');
+}
+
+// ── Global XP leaderboard ────────────────────────────────────────────────────
+async function openLeaderboard() {
+  const overlay = document.getElementById('leaderboard-overlay');
+  const list = document.getElementById('leaderboard-list');
+  list.innerHTML = '<div class="daily-lb-loading">Loading…</div>';
+  overlay.classList.add('open');
+  try {
+    const r = await fetch('/api/leaderboard');
+    const d = await r.json();
+    const medals = ['🥇','🥈','🥉'];
+    list.innerHTML = (d.top || []).length
+      ? d.top.map((u, i) => `<div class="stand-row${currentUser && u.username === currentUser.username ? ' you' : ''}" style="animation:none;opacity:1">
+          <div class="stand-rank">${medals[i] || (i + 1)}</div>
+          <div class="stand-info"><div class="stand-name">${esc(u.username)}</div><div class="stand-sub">${u.games} games</div></div>
+          <div class="stand-total">${u.xp.toLocaleString()}</div>
+        </div>`).join('')
+      : '<div class="daily-lb-loading">No players yet — be the first!</div>';
+  } catch { list.innerHTML = '<div class="daily-lb-loading">Could not load leaderboard.</div>'; }
+}
+function closeLeaderboard() { document.getElementById('leaderboard-overlay').classList.remove('open'); }
+
 function countUp(el, target, duration = 1000, suffix = '') {
   if (!el) return;
   const start = performance.now();
@@ -1931,6 +2129,8 @@ function showGameOver(data) {
   closeStandingsModal();
   showScreen('gameover-screen');
   if (currentUser) setTimeout(refreshUser, 800); // pick up updated games/XP
+  renderReview();
+  playSound('win');
 
   // Team battle game over
   if (data.teamMode) {
@@ -2009,6 +2209,7 @@ function showGameOver(data) {
   // Daily challenge: show submit section
   const submitWrap = document.getElementById('daily-submit-wrap');
   if (isDaily) {
+    updateDailyStreak();
     const me = final.find(p => p.id === myId);
     submitWrap.style.display = '';
     document.getElementById('dsub-score-val').textContent = `${(me?.score ?? 0).toLocaleString()} pts`;
@@ -2057,7 +2258,11 @@ function openAccount() {
     document.getElementById('account-profile').style.display = '';
     document.getElementById('profile-name').textContent = currentUser.username;
     document.getElementById('profile-games').textContent = currentUser.games ?? 0;
+    document.getElementById('profile-xp').textContent = (currentUser.xp ?? 0).toLocaleString();
+    document.getElementById('profile-streak').textContent = getStreak();
     document.getElementById('profile-joined').textContent = currentUser.createdAt ? new Date(currentUser.createdAt).toLocaleDateString() : 'recently';
+    renderProfileUnits();
+    updateSoundUI();
   } else {
     document.getElementById('account-auth').style.display = '';
     document.getElementById('account-profile').style.display = 'none';
@@ -2132,6 +2337,7 @@ async function restoreSession() {
   else localStorage.removeItem('pg-token');
 }
 restoreSession();
+updateSoundUI();
 // Re-send auth on (re)connect so the server can credit games to the account
 socket.on('connect', () => { const t = localStorage.getItem('pg-token'); if (t) socket.emit('auth', { token: t }); });
 
@@ -2181,8 +2387,15 @@ function onRoundStart(data) {
   roomState = room;
   myGuess = null;
   guessSubmitted = false;
-  if (round <= 1) prevStandings = {}; // fresh standings each new game
+  if (round <= 1) { prevStandings = {}; gameReview = []; } // fresh standings + review each new game
   closeStandingsModal();
+  // Reset hint for the new round
+  currentHintRegion = data.hintRegion || null;
+  hintUsedThisRound = false;
+  const hintBtn = document.getElementById('hint-btn');
+  const hintReveal = document.getElementById('hint-reveal');
+  if (hintBtn) { hintBtn.disabled = false; hintBtn.style.display = (mode === 'practice') ? 'none' : ''; }
+  if (hintReveal) hintReveal.style.display = 'none';
 
   showScreen('game-screen');
 

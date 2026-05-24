@@ -149,7 +149,7 @@ function pwMatches(pw, salt, hash) {
 }
 function newToken() { return crypto.randomBytes(24).toString('hex'); }
 function validEmail(e) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e); }
-function publicUser(u) { return { username: u.username, email: u.email, games: u.games || 0, xp: u.xp || 0, createdAt: u.createdAt }; }
+function publicUser(u) { return { username: u.username, email: u.email, games: u.games || 0, xp: u.xp || 0, createdAt: u.createdAt, unitXp: u.unitXp || {}, unitGames: u.unitGames || {} }; }
 
 app.post('/api/auth/register', (req, res) => {
   let { email, username, password } = req.body || {};
@@ -198,6 +198,15 @@ app.post('/api/auth/logout', (req, res) => {
   const d = readAccounts();
   if (token && d.tokens[token]) { delete d.tokens[token]; writeAccounts(d); }
   res.json({ ok: true });
+});
+
+app.get('/api/leaderboard', (req, res) => {
+  const d = readAccounts();
+  const top = Object.values(d.users)
+    .map(u => ({ username: u.username, xp: u.xp || 0, games: u.games || 0 }))
+    .sort((a, b) => b.xp - a.xp)
+    .slice(0, 25);
+  res.json({ top });
 });
 
 // ── Username filter ───────────────────────────────────────────────────────────
@@ -350,6 +359,12 @@ function distPoints(km) {
   return Math.round(5000 * Math.exp(-km / 450));
 }
 
+// Coarse region hint (the country) derived from a location's city string.
+function regionHint(city) {
+  const parts = String(city || '').split(',').map(s => s.trim()).filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : 'Unknown';
+}
+
 function teamBest(room, team) {
   let best = -1, bestPlayer = null;
   for (const p of room.players.values()) {
@@ -394,6 +409,7 @@ function publicRoom(room) {
 function beginRound(room) {
   room.state = 'round';
   room.roundAnswers.clear();
+  room.hintsUsed = new Set();
   room.roundStart = Date.now();
   const loc = room.locations[room.round];
   const tl = timeLimitFor(room);
@@ -407,6 +423,7 @@ function beginRound(room) {
     icon: loc.icon,
     wikiTitle: loc.wikiTitle,
     clue: loc.clues[0],
+    hintRegion: regionHint(loc.city),
     room: publicRoom(room),
   });
 
@@ -490,12 +507,21 @@ function creditAccounts(room) {
     if (email) updates.push([email, p.score || 0]);
   }
   if (!updates.length) return;
+  const unit = room.isDaily ? 'daily' : (room.mode === 'community' ? 'community' : (room.unit || 'all'));
   try {
     const d = readAccounts();
     let changed = false;
     for (const [email, score] of updates) {
       const u = d.users[email];
-      if (u) { u.games = (u.games || 0) + 1; u.xp = (u.xp || 0) + score; changed = true; }
+      if (u) {
+        u.games = (u.games || 0) + 1;
+        u.xp = (u.xp || 0) + score;
+        if (!u.unitXp) u.unitXp = {};
+        if (!u.unitGames) u.unitGames = {};
+        u.unitXp[unit] = (u.unitXp[unit] || 0) + score;
+        u.unitGames[unit] = (u.unitGames[unit] || 0) + 1;
+        changed = true;
+      }
     }
     if (changed) writeAccounts(d);
   } catch {}
@@ -609,6 +635,13 @@ io.on('connection', socket => {
     io.to(code).emit('room-updated', { room: publicRoom(room) });
   });
 
+  socket.on('use-hint', ({ code }) => {
+    const room = rooms.get(code);
+    if (!room || room.state !== 'round') return;
+    if (room.roundAnswers.has(socket.id)) return; // can't hint after guessing
+    if (room.hintsUsed) room.hintsUsed.add(socket.id);
+  });
+
   socket.on('set-team', ({ code, team }) => {
     const room = rooms.get(code);
     if (!room || room.state !== 'lobby') return;
@@ -636,7 +669,9 @@ io.on('connection', socket => {
     const loc = room.locations[room.round];
     const km = haversineKm(lat, lng, loc.lat, loc.lng);
     const elapsed = (Date.now() - room.roundStart) / 1000;
-    const pts = calcScore(km, elapsed, timeLimitFor(room));
+    let pts = calcScore(km, elapsed, timeLimitFor(room));
+    const usedHint = room.hintsUsed && room.hintsUsed.has(socket.id);
+    if (usedHint) pts = Math.round(pts * 0.5); // hint penalty: half points this round
     room.roundAnswers.set(socket.id, { lat, lng, km, pts });
     const p = room.players.get(socket.id);
     if (p) p.score += pts;
