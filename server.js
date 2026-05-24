@@ -549,7 +549,7 @@ io.on('connection', socket => {
     const room = rooms.get((code||'').toUpperCase().trim());
     if (!room) return socket.emit('join-error', 'Room not found. Check the code and try again.');
     if (room.state !== 'lobby') return socket.emit('join-error', 'This game is already in progress.');
-    if (room.players.size >= 8) return socket.emit('join-error', 'Room is full (8 players max).');
+    if (room.players.size >= 20) return socket.emit('join-error', 'Room is full (20 players max).');
     const av = uniqueAvatar(room, avatar || defaultAvatar(name));
     const avatarReassigned = !!(avatar && avatar.id && av.id && av.id !== avatar.id);
     const requestedName = (name || '?').trim();
