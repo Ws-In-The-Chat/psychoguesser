@@ -1031,7 +1031,7 @@ input[type=text]::placeholder, input[type=email]::placeholder, input[type=passwo
     </div>
 
     <div class="final-leaderboard" id="review-wrap" style="display:none">
-      <h3>📖 Review — where they actually were</h3>
+      <h3>📖 Review - where they actually were</h3>
       <div id="review-list"></div>
       <div id="daily-share-wrap" style="display:none;margin-top:14px">
         <button class="btn btn-secondary" style="width:100%" onclick="shareDaily()">📋 Copy shareable result</button>
@@ -2008,7 +2008,7 @@ function shareDaily() {
   const d = new Date();
   const txt = `🧠 PsychoGuesser Daily ${d.toLocaleDateString('en-US',{month:'short',day:'numeric'})}\n${squares}\n${total.toLocaleString()} pts · psychoguesser.com`;
   navigator.clipboard.writeText(txt).then(
-    () => toast('Result copied — paste it anywhere!', 'info'),
+    () => toast('Result copied - paste it anywhere!', 'info'),
     () => toast('Could not copy.', 'warn')
   );
 }
@@ -2101,7 +2101,7 @@ async function openLeaderboard() {
           <div class="stand-info"><div class="stand-name">${esc(u.username)}</div><div class="stand-sub">${u.games} games</div></div>
           <div class="stand-total">${u.xp.toLocaleString()}</div>
         </div>`).join('')
-      : '<div class="daily-lb-loading">No players yet — be the first!</div>';
+      : '<div class="daily-lb-loading">No players yet - be the first!</div>';
   } catch { list.innerHTML = '<div class="daily-lb-loading">Could not load leaderboard.</div>'; }
 }
 function closeLeaderboard() { document.getElementById('leaderboard-overlay').classList.remove('open'); }

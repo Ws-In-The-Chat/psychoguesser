@@ -1,4 +1,4 @@
-// Shared psychologist avatar list — used by both the browser (window.PSYCHOLOGISTS)
+// Shared psychologist avatar list - used by both the browser (window.PSYCHOLOGISTS)
 // and the server (require) so avatar uniqueness can be enforced authoritatively.
 (function () {
   const PSYCHOLOGISTS = [
