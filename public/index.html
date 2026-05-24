@@ -1572,14 +1572,22 @@ function renderTeams(room) {
   if (!room.teamMode) return;
   const me = (room.players || []).find(p => p.id === myId);
   const myTeam = me ? me.team : null;
+  const TEAM_MAX = 10;
+  const emoji = { A: '🔴', B: '🔵' };
   ['A','B'].forEach(t => {
     const box = document.getElementById(`team-${t.toLowerCase()}-members`);
     const members = (room.players || []).filter(p => p.team === t);
+    const head = box && box.previousElementSibling;
+    if (head && head.classList.contains('tp-head')) head.textContent = `${emoji[t]} Team ${t} (${members.length}/${TEAM_MAX})`;
     box.innerHTML = members.length
       ? members.map(p => `<div class="tp-member">${avatarCircleHTML(p.avatar||{}, 26)}<span>${esc(p.name)}${p.id===myId?' (you)':''}</span></div>`).join('')
       : '<div class="tp-empty">No players yet</div>';
     const btn = document.querySelector(`.btn-team-${t.toLowerCase()}`);
-    if (btn) { btn.disabled = myTeam === t; btn.textContent = myTeam === t ? `You're on Team ${t}` : `Join Team ${t}`; }
+    if (btn) {
+      const full = members.length >= TEAM_MAX && myTeam !== t;
+      btn.disabled = myTeam === t || full;
+      btn.textContent = myTeam === t ? `You're on Team ${t}` : (full ? `Team ${t} full` : `Join Team ${t}`);
+    }
   });
 }
 

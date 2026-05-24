@@ -348,6 +348,7 @@ function uniqueName(room, name) {
 // ── Team / Duel helpers ───────────────────────────────────────────────────────
 const DUEL_HP = 5000;
 const MAX_ROUND_DAMAGE = 2500; // a single round can take at most half a health bar
+const TEAM_MAX = 10; // max players per team in team battle mode
 
 function roundMultiplier(roundIndexZeroBased) {
   // Rounds 1-3 = x1, then +0.5 each round (r4=1.5, r5=2, r6=2.5 ...)
@@ -647,7 +648,11 @@ io.on('connection', socket => {
     if (!room || room.state !== 'lobby') return;
     if (team !== 'A' && team !== 'B') return;
     const p = room.players.get(socket.id);
-    if (p) p.team = team;
+    if (!p) return;
+    if (p.team !== team && teamCounts(room)[team] >= TEAM_MAX) {
+      return socket.emit('start-error', `Team ${team} is full (max ${TEAM_MAX} players).`);
+    }
+    p.team = team;
     io.to(code).emit('room-updated', { room: publicRoom(room) });
   });
 
