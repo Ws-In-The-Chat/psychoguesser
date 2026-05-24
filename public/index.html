@@ -218,6 +218,15 @@ input[type=text]::placeholder, input[type=email]::placeholder, input[type=passwo
 .btn-team-b:hover { background: rgba(59,130,246,0.3); }
 .btn-team-join:disabled { opacity: 0.5; cursor: default; }
 .count-box { display:inline-flex; align-items:center; gap:1px; background: rgba(244,106,76,0.16); border: 1px solid rgba(244,106,76,0.4); color: #f6b38e; border-radius: 8px; padding: 3px 10px; font-size: 12px; font-weight: 800; letter-spacing: 0.02em; }
+/* Themed confirm dialog */
+#confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.78); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+#confirm-overlay.open { display: flex; }
+.confirm-box { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 30px 28px; width: 100%; max-width: 380px; text-align: center; box-shadow: 0 24px 60px rgba(0,0,0,0.5); animation: winner-pop 0.32s cubic-bezier(.2,.8,.2,1.25) both; }
+.confirm-icon { font-size: 40px; margin-bottom: 10px; }
+.confirm-box h2 { font-size: 20px; margin-bottom: 8px; color: var(--text); }
+.confirm-box p { color: var(--muted); font-size: 14px; line-height: 1.45; margin-bottom: 22px; }
+.confirm-actions { display: flex; gap: 10px; }
+.confirm-actions .btn { flex: 1; }
 .tp-count { float: right; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 7px; padding: 1px 8px; font-size: 11px; font-weight: 800; }
 
 /* Team health bars (game + results) */
@@ -753,6 +762,19 @@ input[type=text]::placeholder, input[type=email]::placeholder, input[type=passwo
     <h2>🏆 Top Players</h2>
     <p style="color:var(--muted);font-size:13px;margin-bottom:14px">Ranked by total XP earned across all games.</p>
     <div id="leaderboard-list"></div>
+  </div>
+</div>
+
+<!-- Themed confirm dialog -->
+<div id="confirm-overlay" onclick="if(event.target===this)resolveConfirm(false)">
+  <div class="confirm-box">
+    <div class="confirm-icon" id="confirm-icon">🚪</div>
+    <h2 id="confirm-title">Are you sure?</h2>
+    <p id="confirm-msg"></p>
+    <div class="confirm-actions">
+      <button class="btn btn-secondary" id="confirm-cancel" onclick="resolveConfirm(false)">Cancel</button>
+      <button class="btn btn-primary" id="confirm-ok" onclick="resolveConfirm(true)">OK</button>
+    </div>
   </div>
 </div>
 
@@ -2247,8 +2269,33 @@ function goHome() {
   showScreen('home-screen');
 }
 
-function confirmHome() {
-  if (confirm('Leave and return to the home screen?')) goHome();
+// Themed confirm dialog (replaces native confirm())
+let _confirmResolver = null;
+function showConfirm({ title = 'Are you sure?', message = '', icon = '⚠️', okText = 'OK', cancelText = 'Cancel', danger = false } = {}) {
+  return new Promise(resolve => {
+    _confirmResolver = resolve;
+    document.getElementById('confirm-icon').textContent = icon;
+    document.getElementById('confirm-title').textContent = title;
+    document.getElementById('confirm-msg').textContent = message;
+    const ok = document.getElementById('confirm-ok');
+    ok.textContent = okText;
+    ok.style.background = danger ? 'var(--red)' : '';
+    document.getElementById('confirm-cancel').textContent = cancelText;
+    document.getElementById('confirm-overlay').classList.add('open');
+  });
+}
+function resolveConfirm(val) {
+  document.getElementById('confirm-overlay').classList.remove('open');
+  if (_confirmResolver) { _confirmResolver(val); _confirmResolver = null; }
+}
+
+async function confirmHome() {
+  const ok = await showConfirm({
+    title: 'Leave the game?',
+    message: 'You\'ll return to the home screen and lose your spot in this game.',
+    icon: '🚪', okText: 'Leave', cancelText: 'Stay', danger: true
+  });
+  if (ok) goHome();
 }
 
 // ═══════════════════════════════════════════════════════════
