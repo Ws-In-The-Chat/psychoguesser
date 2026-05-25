@@ -1229,7 +1229,7 @@ async function loadAvatarImages() {
   await Promise.all(PSYCHOLOGISTS.map(async p => {
     if (avatarImgCache[p.id] !== undefined || !p.wiki) return;
     try {
-      const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(p.wiki)}`);
+      const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${wikiEnc(p.wiki)}`);
       const d = await r.json();
       avatarImgCache[p.id] = d.thumbnail?.source || null;
     } catch { avatarImgCache[p.id] = null; }
@@ -1322,7 +1322,7 @@ let bgImages = [], bgIdx = 0, bgUsingA = true;
 async function loadBgImages() {
   const results = await Promise.all(HOME_BG_WIKIS.map(async w => {
     try {
-      const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(w)}`);
+      const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${wikiEnc(w)}`);
       const d = await r.json();
       return d.originalimage?.source || d.thumbnail?.source || null;
     } catch { return null; }
@@ -2404,16 +2404,40 @@ socket.on('connect', () => { const t = localStorage.getItem('pg-token'); if (t) 
 // ═══════════════════════════════════════════════════════════
 // WIKIPEDIA IMAGE FETCH
 // ═══════════════════════════════════════════════════════════
+// Encode a wiki title safely whether it's already percent-encoded or plain.
+function wikiEnc(title) {
+  let t = String(title || '').replace(/ /g, '_');
+  try { return encodeURIComponent(decodeURIComponent(t)); }
+  catch { return encodeURIComponent(t); }
+}
+
 const imgCache = {};
 async function fetchWikiImage(wikiTitle) {
   if (imgCache[wikiTitle] !== undefined) return imgCache[wikiTitle];
+  const enc = wikiEnc(wikiTitle);
+  // 1) Lead image from the page summary
   try {
-    const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiTitle)}`);
+    const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${enc}`);
     const d = await r.json();
     const src = d.originalimage?.source || d.thumbnail?.source || null;
-    imgCache[wikiTitle] = src;
-    return src;
-  } catch(e) { imgCache[wikiTitle] = null; return null; }
+    if (src) { imgCache[wikiTitle] = src; return src; }
+  } catch (e) {}
+  // 2) Fallback: first usable image from the page's media list
+  try {
+    const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/media-list/${enc}`);
+    if (r.ok) {
+      const d = await r.json();
+      const item = (d.items || []).find(i => i.type === 'image' && i.srcset && i.srcset.length);
+      if (item) {
+        let src = item.srcset[item.srcset.length - 1].src;
+        if (src.startsWith('//')) src = 'https:' + src;
+        imgCache[wikiTitle] = src;
+        return src;
+      }
+    }
+  } catch (e) {}
+  imgCache[wikiTitle] = null;
+  return null;
 }
 
 function setLocationImage(imgSrc, gradient, icon) {
