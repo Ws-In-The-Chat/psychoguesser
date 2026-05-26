@@ -21,6 +21,60 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
+// ── Wikipedia image URL cache (resolves once, ships URL with round-start) ─────
+const IMG_CACHE_FILE = path.join(DATA_DIR, 'image-cache.json');
+let imageCache = {};
+try { imageCache = JSON.parse(fs.readFileSync(IMG_CACHE_FILE, 'utf8')) || {}; } catch {}
+let imageCacheDirty = false;
+function saveImageCache() {
+  if (!imageCacheDirty) return;
+  try { fs.writeFileSync(IMG_CACHE_FILE, JSON.stringify(imageCache)); imageCacheDirty = false; } catch {}
+}
+setInterval(saveImageCache, 15000).unref?.();
+process.on('SIGTERM', saveImageCache);
+process.on('SIGINT', saveImageCache);
+
+function wikiEnc(t) {
+  t = String(t || '').replace(/ /g, '_');
+  try { return encodeURIComponent(decodeURIComponent(t)); } catch { return encodeURIComponent(t); }
+}
+const WIKI_HEADERS = { 'User-Agent': 'PsychoGuesser/1.0 (https://psychoguesser.com)' };
+
+async function resolveImageUrl(wikiTitle) {
+  if (!wikiTitle) return null;
+  if (imageCache[wikiTitle] !== undefined) return imageCache[wikiTitle];
+  const enc = wikiEnc(wikiTitle);
+  let src = null;
+  try {
+    const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${enc}`, { headers: WIKI_HEADERS });
+    if (r.ok) { const d = await r.json(); src = d?.originalimage?.source || d?.thumbnail?.source || null; }
+  } catch {}
+  if (!src) {
+    try {
+      const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/media-list/${enc}`, { headers: WIKI_HEADERS });
+      if (r.ok) {
+        const d = await r.json();
+        const it = (d.items || []).find(i => i.type === 'image' && i.srcset && i.srcset.length);
+        if (it) { let s = it.srcset[it.srcset.length - 1].src; src = s.startsWith('//') ? 'https:' + s : s; }
+      }
+    } catch {}
+  }
+  imageCache[wikiTitle] = src;
+  imageCacheDirty = true;
+  return src;
+}
+
+// Background prefetch of every location image on startup (slow-trickle, no spam).
+(async () => {
+  const titles = [...new Set(LOCATIONS_ALL.map(l => l.wikiTitle))];
+  for (const t of titles) {
+    if (imageCache[t] !== undefined) continue;
+    await resolveImageUrl(t);
+    await new Promise(r => setTimeout(r, 80));
+  }
+  saveImageCache();
+})();
+
 // ── Daily Challenge ────────────────────────────────────────────────────────────
 const SCORES_FILE = path.join(DATA_DIR, 'daily-scores.json');
 
@@ -415,6 +469,7 @@ function beginRound(room) {
   const loc = room.locations[room.round];
   const tl = timeLimitFor(room);
 
+  const nextLoc = room.locations[room.round + 1];
   io.to(room.code).emit('round-start', {
     round: room.round + 1,
     totalRounds: room.locations.length,
@@ -423,10 +478,20 @@ function beginRound(room) {
     gradient: loc.gradient,
     icon: loc.icon,
     wikiTitle: loc.wikiTitle,
+    imageUrl: imageCache[loc.wikiTitle] || null,
+    nextImageUrl: nextLoc ? (imageCache[nextLoc.wikiTitle] || null) : null,
     clue: loc.clues[0],
     hintRegion: regionHint(loc.city),
     room: publicRoom(room),
   });
+  // If current image isn't cached yet, resolve it lazily and push when ready.
+  if (loc.wikiTitle && !imageCache[loc.wikiTitle]) {
+    resolveImageUrl(loc.wikiTitle).then(url => {
+      if (url && room.state === 'round') io.to(room.code).emit('image-ready', { wikiTitle: loc.wikiTitle, imageUrl: url });
+    });
+  }
+  // Warm the next-round image in the background regardless.
+  if (nextLoc && nextLoc.wikiTitle && !imageCache[nextLoc.wikiTitle]) resolveImageUrl(nextLoc.wikiTitle);
 
   // Detective mode: progressive clues at 15s intervals
   if (room.mode === 'detective') {

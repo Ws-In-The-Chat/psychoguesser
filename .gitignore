@@ -2,5 +2,6 @@ node_modules/
 daily-scores.json
 community-locations.json
 accounts.json
+image-cache.json
 .DS_Store
 **/.DS_Store

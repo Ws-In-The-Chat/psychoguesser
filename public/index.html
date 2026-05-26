@@ -574,11 +574,12 @@ input[type=text]::placeholder, input[type=email]::placeholder, input[type=passwo
 .home-bg-layer {
   position: absolute; inset: 0; z-index: 0;
   background-size: cover; background-position: center;
-  opacity: 0; transition: opacity 2.2s ease;
-  filter: brightness(0.78) saturate(1.08) contrast(1.02);
-  transform: scale(1.06); will-change: opacity;
-  animation: kenburns 22s ease-in-out infinite alternate;
+  opacity: 0; transition: opacity 1.4s ease;
+  filter: brightness(0.78);
+  transform: scale(1.06) translateZ(0); will-change: opacity;
+  animation: kenburns 30s ease-in-out infinite alternate;
 }
+@media (prefers-reduced-motion: reduce) { .home-bg-layer { animation: none; transform: none; } }
 .home-bg-layer.active { opacity: 1; }
 @keyframes kenburns { from { transform: scale(1.06); } to { transform: scale(1.16); } }
 
@@ -1239,7 +1240,7 @@ async function loadAvatarImages() {
   if (roomState && roomState.players) renderPlayers(roomState.players);
 }
 
-const socket = io({ transports: ['polling', 'websocket'], reconnectionAttempts: 10 });
+const socket = io({ transports: ['websocket', 'polling'], reconnectionAttempts: 10 });
 let myId = null;
 let roomCode = null;
 let roomState = null;
@@ -2510,13 +2511,33 @@ function onRoundStart(data) {
   const clueList = document.getElementById('clue-list');
   clueList.innerHTML = `<li class="clue-item"><div class="clue-num">1</div><div class="clue-text">${esc(clue)}</div></li>`;
 
-  // Image
-  setLocationImage(null, gradient, icon);
-  fetchWikiImage(wikiTitle).then(src => setLocationImage(src, gradient, icon));
+  // Image — prefer the server-provided URL (instant); fall back to client fetch.
+  if (data.imageUrl) {
+    imgCache[wikiTitle] = data.imageUrl;
+    setLocationImage(data.imageUrl, gradient, icon);
+  } else {
+    setLocationImage(null, gradient, icon);
+    fetchWikiImage(wikiTitle).then(src => setLocationImage(src, gradient, icon));
+  }
+  currentRoundWikiTitle = wikiTitle;
+  // Warm the next image in the browser so the next round paints instantly.
+  if (data.nextImageUrl) { const i = new Image(); i.src = data.nextImageUrl; }
 
   // Timer
   startTimer(timeLimit);
 }
+
+// Listen for delayed image-ready pushes from the server (only used when the
+// server didn't have it cached at round-start time).
+let currentRoundWikiTitle = null;
+socket.on('image-ready', ({ wikiTitle, imageUrl }) => {
+  if (!imageUrl) return;
+  imgCache[wikiTitle] = imageUrl;
+  if (wikiTitle === currentRoundWikiTitle) {
+    const imgEl = document.getElementById('loc-img');
+    if (imgEl && (!imgEl.src || imgEl.style.display === 'none')) imgEl.src = imageUrl;
+  }
+});
 
 function addClue(clue, clueNum) {
   const clueList = document.getElementById('clue-list');
