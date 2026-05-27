@@ -368,11 +368,23 @@ input[type=text]::placeholder, input[type=email]::placeholder, input[type=passwo
 .round-banner .rb-q { font-size: 19px; font-weight: 900; color: var(--text); letter-spacing: -0.01em; }
 .clues-header { font-size: 12px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
 .clue-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
-#hint-area { margin-top: 14px; }
-.hint-btn { background: rgba(31,182,166,0.14); border: 1px solid rgba(31,182,166,0.45); color: #6ee7d7; border-radius: 10px; padding: 9px 14px; font-size: 12px; font-weight: 800; cursor: pointer; font-family: inherit; transition: all 0.16s; }
-.hint-btn:hover:not(:disabled) { background: rgba(31,182,166,0.26); }
-.hint-btn:disabled { opacity: 0.5; cursor: default; }
-.hint-reveal { margin-top: 10px; font-size: 13px; font-weight: 700; color: #6ee7d7; background: rgba(31,182,166,0.1); border: 1px solid rgba(31,182,166,0.3); border-radius: 8px; padding: 8px 12px; }
+#hint-area { margin-top: 16px; }
+.hint-btn {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: linear-gradient(135deg, rgba(31,182,166,0.28), rgba(31,182,166,0.14));
+  border: 1.5px solid rgba(31,182,166,0.65); color: #b8f0e5;
+  border-radius: 12px; padding: 13px 16px; font-size: 14px; font-weight: 900;
+  cursor: pointer; font-family: inherit; transition: all 0.16s; letter-spacing: 0.01em;
+  box-shadow: 0 0 0 0 rgba(31,182,166,0); animation: hint-pulse 2.6s ease-in-out infinite;
+}
+.hint-btn:hover:not(:disabled) { background: linear-gradient(135deg, rgba(31,182,166,0.4), rgba(31,182,166,0.22)); transform: translateY(-1px); }
+.hint-btn:disabled { opacity: 0.55; cursor: default; animation: none; }
+.hint-sub { display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: rgba(184,240,229,0.7); margin-top: 3px; text-transform: uppercase; }
+@keyframes hint-pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(31,182,166,0); }
+  50% { box-shadow: 0 0 16px 2px rgba(31,182,166,0.45); }
+}
+.hint-reveal { margin-top: 10px; font-size: 14px; font-weight: 800; color: #6ee7d7; background: rgba(31,182,166,0.14); border: 1px solid rgba(31,182,166,0.4); border-radius: 10px; padding: 10px 14px; }
 .clue-item { display: flex; gap: 10px; animation: fade-in 0.4s ease; }
 @keyframes fade-in { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
 .clue-num { width: 20px; height: 20px; border-radius: 50%; background: rgba(244,106,76,0.25); border: 1px solid rgba(244,106,76,0.4); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; color: #f6b38e; flex-shrink: 0; margin-top: 1px; }
@@ -999,7 +1011,11 @@ input[type=text]::placeholder, input[type=email]::placeholder, input[type=passwo
         <div class="clues-header">💡 Clues <span id="mode-badge" class="badge badge-purple" style="margin-left:4px"></span></div>
         <ul class="clue-list" id="clue-list"></ul>
         <div id="hint-area">
-          <button class="hint-btn" id="hint-btn" onclick="useHint()">🧭 Reveal region (-50% this round)</button>
+          <button class="hint-btn" id="hint-btn" onclick="useHint()">
+            <span>🧭 Stuck? Reveal the country / region
+              <span class="hint-sub">Costs 50% of this round's points</span>
+            </span>
+          </button>
           <div class="hint-reveal" id="hint-reveal" style="display:none"></div>
         </div>
       </div>
