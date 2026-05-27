@@ -1255,7 +1255,9 @@ function avatarCircleHTML(avatar, size=36) {
 
 async function loadAvatarImages() {
   await Promise.all(PSYCHOLOGISTS.map(async p => {
-    if (avatarImgCache[p.id] !== undefined || !p.wiki) return;
+    if (avatarImgCache[p.id] !== undefined) return;
+    if (p.img) { avatarImgCache[p.id] = p.img; return; } // hardcoded override
+    if (!p.wiki) { avatarImgCache[p.id] = null; return; }
     try {
       const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${wikiEnc(p.wiki)}`);
       const d = await r.json();

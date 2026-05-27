@@ -3,7 +3,7 @@
 (function () {
   const PSYCHOLOGISTS = [
     { id:'freud',     name:'Sigmund Freud',       short:'SF', color:'#ff6b3d', wiki:'Sigmund_Freud' },
-    { id:'jung',      name:'Carl Jung',            short:'CJ', color:'#ff9d3c', wiki:'Carl_Jung' },
+    { id:'jung',      name:'Carl Jung',            short:'CJ', color:'#ff9d3c', wiki:'Carl_Jung', img:'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Carl_Gustav_Jung_portrait.jpg/330px-Carl_Gustav_Jung_portrait.jpg' },
     { id:'skinner',   name:'B.F. Skinner',         short:'BF', color:'#3b82f6', wiki:'B._F._Skinner' },
     { id:'pavlov',    name:'Ivan Pavlov',           short:'IP', color:'#22c55e', wiki:'Ivan_Pavlov' },
     { id:'piaget',    name:'Jean Piaget',           short:'JP', color:'#f59e0b', wiki:'Jean_Piaget' },
