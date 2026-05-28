@@ -347,7 +347,12 @@ function pickLocations(mode, unit = 'all', customRounds) {
     return [...pool].sort(() => Math.random()-0.5).slice(0, n);
   }
   const pool = poolForUnit(unit);
-  const shuffled = [...pool].sort(() => Math.random()-0.5);
+  // Ease players in: lead with one or two iconic / widely-known locations,
+  // then fill the rest randomly. (Feedback: questions felt hard up front.)
+  const iconic = pool.filter(l => l.iconic).sort(() => Math.random()-0.5);
+  const rest   = pool.filter(l => !l.iconic).sort(() => Math.random()-0.5);
+  const lead = Math.min(n <= 3 ? 1 : 2, iconic.length);
+  const shuffled = [...iconic.slice(0, lead), ...rest];
   // If more rounds requested than the pool holds, top up from the full pool
   if (n > shuffled.length) {
     const extra = [...LOCATIONS_ALL].sort(() => Math.random()-0.5);
